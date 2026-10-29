@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+stillive/donnees/
+stillive/moteur/
+stillive/config_local.json
+*.log
+*.pid
+cle.txt
