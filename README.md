@@ -1,8 +1,16 @@
 # Stillive
 
-**Your photos come alive. Nothing leaves your home.**
+**Your family photos come alive, in one tap from your phone.**
 
-Stillive turns a single photo (a family picture, a vintage print, a phone snapshot) into a short animated clip with music and ambient sound. It runs on your own computer with ComfyUI, and you use it from your phone over your home Wi-Fi.
+Stillive turns a single photo (a family picture, a vintage print, a phone snapshot) into a short animated clip with music and ambient sound, ready to share. It is made for everyone, from grandparents to kids: no AI knowledge, no settings, nothing to learn.
+
+## Made for the whole family
+
+- **Set up once** on the home computer. After that, everyone just uses their phone.
+- **No app to install**: scan the QR code once, and Stillive opens in the phone's browser.
+- **Three steps**: pick a photo (or scan a paper print with the phone camera), tap an effect, watch your clip a few minutes later.
+- **Big, friendly buttons**, playful waiting screen, English and French.
+- **Private by design**: everything runs on your own computer, nothing leaves your home.
 
 ## What you can do
 
