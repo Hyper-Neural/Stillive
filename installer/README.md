@@ -1,12 +1,12 @@
 # Stillive installer
 
-Installs ComfyUI if needed, adds Stillive to it, creates a desktop shortcut, then opens the Stillive preparation page, which downloads the models (about 55 GB).
+Installs ComfyUI if needed, adds Stillive to it, creates a desktop shortcut, then opens the Stillive preparation page, which downloads the models (about 50 GB, plus 23 GB for "Step into a memory").
 
 ## Use
 
 Double-click `INSTALLER.bat` (keep it next to the `stillive` folder). It needs Python 3.9 or later; if Python is missing, it shows how to install it. On Linux, or by hand:
 
-    python installateur_stillive.py
+    python install_stillive.py
 
 - **Express**: one "Install Stillive" button. Default folder: `%USERPROFILE%\Stillive` (`~/Stillive` on Linux).
 - **Advanced**: install folder, graphics card type (recent or older), ComfyUI port, do not start at the end.
@@ -18,8 +18,8 @@ Double-click `INSTALLER.bat` (keep it next to the `stillive` folder). It needs P
 
 ## What you get in the install folder
 
-- `lancer_stillive.bat` / `.sh`: starts ComfyUI with Stillive (also the desktop shortcut "Stillive").
-- `arreter_stillive.bat` / `.sh`: stops it.
+- `start_stillive.bat` / `.sh`: starts ComfyUI with Stillive (also the desktop shortcut "Stillive").
+- `stop_stillive.bat` / `.sh`: stops it.
 
 ## Update
 

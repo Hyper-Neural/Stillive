@@ -68,7 +68,7 @@ SIM = {"systeme": None, "carte": "auto", "disque_go": None}
 # ---------------------------------------------------------------- textes
 class Textes:
     def __init__(self, langue):
-        with open(os.path.join(RESSOURCES, "langues.json"), encoding="utf-8") as f:
+        with open(os.path.join(RESSOURCES, "languages.json"), encoding="utf-8") as f:
             self.tout = json.load(f)
         self.langue = langue if langue in self.tout else "fr"
 
@@ -567,36 +567,36 @@ def ecrire_lanceurs(plan, comfy, python, journal):
         main = chemin_bat(os.path.join(comfy, "main.py"), cible)
         racine = chemin_bat(os.path.dirname(comfy) if os.path.basename(comfy) == "ComfyUI" else comfy, cible)
         portable = "--windows-standalone-build " if os.path.isdir(os.path.join(os.path.dirname(comfy), "python_embeded")) else ""
-        bat = ("@echo off\r\nchcp 65001 >nul\r\nrem Lance ComfyUI avec Stillive. Ecrit par l'installateur Stillive.\r\n"
+        bat = ("@echo off\r\nchcp 65001 >nul\r\nrem Starts ComfyUI with Stillive. Written by the Stillive installer.\r\n"
                f"cd /d \"{racine}\"\r\n"
                f"set STILLIVE_PORT={PORT_STILLIVE}\r\n"
                f"\"{py}\" -s \"{main}\" {portable}--port {plan.port}\r\n"
                "pause\r\n")
-        arret = ("@echo off\r\nchcp 65001 >nul\r\nrem Arrete le ComfyUI demarre par l'installateur Stillive.\r\n"
-                 "if not exist \"%~dp0stillive.pid\" (echo Aucun ComfyUI lance par l'installateur.& pause & exit /b)\r\n"
+        arret = ("@echo off\r\nchcp 65001 >nul\r\nrem Stops the ComfyUI started by the Stillive installer.\r\n"
+                 "if not exist \"%~dp0stillive.pid\" (echo No ComfyUI started by the Stillive installer.& pause & exit /b)\r\n"
                  # Le numéro peut avoir été réattribué à un autre programme (après un redémarrage) :
                  # on n'arrête que si ce numéro est encore un processus python.
                  "for /f \"usebackq\" %%p in (\"%~dp0stillive.pid\") do ("
                  "tasklist /FI \"PID eq %%p\" /NH 2>nul | find /I \"python\" >nul "
                  "&& (taskkill /PID %%p /T /F) "
-                 "|| (echo Ce numero n'est plus celui de ComfyUI, rien n'a ete arrete.))\r\n"
+                 "|| (echo This process is no longer ComfyUI, nothing was stopped.))\r\n"
                  "del \"%~dp0stillive.pid\"\r\npause\r\n")
-        l1, l2 = os.path.join(cible, "lancer_stillive.bat"), os.path.join(cible, "arreter_stillive.bat")
+        l1, l2 = os.path.join(cible, "start_stillive.bat"), os.path.join(cible, "stop_stillive.bat")
         for chemin, texte in ((l1, bat), (l2, arret)):
             with open(chemin, "w", encoding="utf-8", newline="") as f:
                 f.write(texte)
     else:
         py = python or "python3"
-        sh = ("#!/bin/sh\n# Lance ComfyUI avec Stillive. Écrit par l'installateur Stillive.\n"
+        sh = ("#!/bin/sh\n# Starts ComfyUI with Stillive. Written by the Stillive installer.\n"
               f"cd \"{comfy}\" || exit 1\nexport STILLIVE_PORT={PORT_STILLIVE}\n"
               f"exec \"{py}\" main.py --port {plan.port}\n")
-        stop = ("#!/bin/sh\n# Arrête le ComfyUI démarré par l'installateur Stillive.\n"
+        stop = ("#!/bin/sh\n# Stops the ComfyUI started by the Stillive installer.\n"
                 f"if [ -f \"{cible}/stillive.pid\" ]; then\n"
                 f"  p=$(cat \"{cible}/stillive.pid\")\n"
                 "  if ps -p \"$p\" -o comm= | grep -qi python; then kill \"$p\"; "
-                "else echo \"Ce numéro n'est plus celui de ComfyUI, rien n'a été arrêté.\"; fi\n"
+                "else echo \"This process is no longer ComfyUI, nothing was stopped.\"; fi\n"
                 f"  rm -f \"{cible}/stillive.pid\"\nfi\n")
-        l1, l2 = os.path.join(cible, "lancer_stillive.sh"), os.path.join(cible, "arreter_stillive.sh")
+        l1, l2 = os.path.join(cible, "start_stillive.sh"), os.path.join(cible, "stop_stillive.sh")
         for chemin, texte in ((l1, sh), (l2, stop)):
             with open(chemin, "w", encoding="utf-8", newline="\n") as f:
                 f.write(texte)

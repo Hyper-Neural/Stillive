@@ -19,6 +19,15 @@ from .chaine import _load, _save
 from .comfy import Comfy, capacites_ou_none as _capacites
 
 SECONDES_MIN, SECONDES_MAX = 4, 15
+
+
+def _retouche_dispo(comfy):
+    """Qwen Image 2.1 et son VAE présents dans ComfyUI ? L'installateur ne les télécharge pas : sans eux,
+    la photo est animée telle quelle (au lieu d'un film en erreur). Capacités illisibles : on tente."""
+    caps = _capacites(comfy)
+    if caps is None:
+        return True
+    return retouche.MODEL in caps.get("unet", []) and retouche.VAE in caps.get("vae", [])
 # Durées mesurées sur une RTX 5080 (10 films des 26 et 27/10, chargements des modèles compris) : analyse
 # Gemma 28 à 38 s, retouche 22 s, montage 6 à 10 s ; plan H3 turbo 102 s à 4 s, 138 à 158 s à 7 s,
 # 148 à 150 s à 8 s, soit environ 50 s + 12,5 s par seconde de vidéo (15 s non mesuré).
@@ -304,7 +313,7 @@ def fabriquer_clip(photo, sortie, comfy_url, secondes=8, avec_retouche=True, cou
     if r.get("restored") and os.path.isfile(r["restored"]):
         restored = r["restored"]
         name = comfy.upload_image(restored)
-    elif avec_retouche:
+    elif avec_retouche and _retouche_dispo(comfy):
         old = r.get("decade", "2000s") < "1990s"
         if r["black_and_white"] or r.get("damaged") or old:
             rapport("etape", {"etape": "retouche", "restant": _estimation(secondes, True, "retouche", bool(moi_visage))})

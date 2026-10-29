@@ -1,16 +1,16 @@
 @echo off
-rem Lance l'installateur Stillive : cherche Python 3.9 ou plus, sinon explique quoi faire.
+rem Starts the Stillive installer: looks for Python 3.9 or newer, otherwise explains what to do.
 cd /d "%~dp0"
 set "TEST=import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)"
 
 py -3 -c "%TEST%" >nul 2>&1
 if not errorlevel 1 (
-    py -3 installateur_stillive.py %*
+    py -3 install_stillive.py %*
     goto :fin
 )
 python -c "%TEST%" >nul 2>&1
 if not errorlevel 1 (
-    python installateur_stillive.py %*
+    python install_stillive.py %*
     goto :fin
 )
 

@@ -11,4 +11,4 @@ See the [main README](../README.md) for what Stillive does and how to install it
 - `comfy_nodes/`: the Stillive ComfyUI nodes and sidebar panel.
 - `web/`: the phone and computer pages (no build step), texts in `web/i18n/`.
 - `workflows/`: the H3 graphs Stillive sends, in ComfyUI API format.
-- `outils/`: command line tools (one H3 shot, analysis, clip).
+- `tools/`: command line tools (one H3 shot, analysis, clip).

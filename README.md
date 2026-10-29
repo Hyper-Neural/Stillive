@@ -13,18 +13,18 @@ Stillive turns a single photo (a family picture, a vintage print, a phone snapsh
 **Step into a memory**: take a selfie and appear inside any photo, for example your parents' childhood picture.
 - Automatic, Selfie with them, Balloon arrival, Dance with them, Superhero entrance, Magic portal, Reunion, Out of the scenery, Tarzan vine, Electric scooter, Glitch appearance, Hug your younger self.
 
-Clips last 4, 8 or 12 seconds, keep the photo's format, and can end with a short message. "My memories" keeps all your clips; download any of them in one tap.
+Clips are short (5 seconds) or long (10 seconds), with an optional little note at the end. Each clip comes in a vertical and a horizontal version. "My memories" keeps all your clips; download any of them in one tap.
 
 ## What you need
 
-- A Windows or Linux computer with an NVIDIA graphics card (12 GB of video memory or more recommended) and 32 GB of RAM.
-- About 55 GB of free disk space for the models (downloaded automatically).
+- A Windows or Linux computer with an NVIDIA graphics card with at least 12 GB of video memory, and 32 GB of RAM.
+- Free disk space for the models, downloaded automatically: about 50 GB, plus 23 GB for "Step into a memory" (optional), plus about 5 GB for ComfyUI if you don't have it yet.
 - A phone on the same Wi-Fi network as the computer.
 
 ## Install
 
 1. Download this repository (green "Code" button, then "Download ZIP") and unzip it.
-2. Double-click `installateur/INSTALLER.bat` (on Linux: `python3 installateur/installateur_stillive.py`). It needs Python 3.9 or later and tells you how to get it if it is missing.
+2. Double-click `installer/INSTALLER.bat` (on Linux: `python3 installer/install_stillive.py`). It needs Python 3.9 or later and tells you how to get it if it is missing.
 3. Click "Install Stillive".
    - **You don't have ComfyUI**: the installer sets it up for you, adds Stillive, then opens the preparation page.
    - **You already have ComfyUI**: choose your ComfyUI folder in advanced mode; only Stillive is added. Restart ComfyUI, then click "Set up Stillive" in the small message ComfyUI shows.
@@ -33,8 +33,8 @@ Clips last 4, 8 or 12 seconds, keep the photo's format, and can end with a short
 
 ## Everyday use
 
-- Start: the "Stillive" shortcut on the desktop. Stop: `arreter_stillive.bat` in the install folder.
-- On the phone: open the saved page, pick a photo (or scan a paper print), choose an effect, wait a few minutes, watch and download.
+- Start: the "Stillive" shortcut on the desktop (or `start_stillive.bat` in the install folder). Stop: `stop_stillive.bat`.
+- On the phone: open the saved page, pick a photo (or scan a paper photo), choose an effect, wait a few minutes, watch and download.
 - Update: download the new version and run the installer again. Your settings, models and clips are kept.
 - Uninstall: on the computer, open the preparation page, section "Uninstall Stillive", and choose what to remove. It only removes what Stillive installed itself, never your own models.
 
@@ -47,15 +47,14 @@ Clips last 4, 8 or 12 seconds, keep the photo's format, and can end with a short
 ## How it works
 
 1. **Gemma 4 12B** (run locally by llama.cpp inside a Stillive ComfyUI node) looks at the photo and writes a precise, timed prompt for the chosen effect.
-2. Old or black and white photos can first be restored and colorized with **Qwen Image 2.1**.
-3. **MiniMax H3** turns the photo into a video with its own music and ambient sound (image to video, or reference to video with your selfie for "Step into a memory").
-4. Stillive trims the clip, adds your message and sends it to your phone.
+2. **MiniMax H3** turns the photo into a video with its own music and ambient sound (image to video, or reference to video with your selfie for "Step into a memory"), using the official 4-step turbo LoRA.
+3. Stillive trims the clip, adds your note and sends it to your phone.
 
 The H3 graphs Stillive sends to ComfyUI are in [`stillive/workflows/`](stillive/workflows/) (ComfyUI API format).
 
 ## Models and licenses
 
-Stillive ships no model weights; they are downloaded from their official pages. See [MODELES-ET-LICENCES.md](MODELES-ET-LICENCES.md).
+Stillive ships no model weights; they are downloaded from their official pages. See [MODELS-AND-LICENSES.md](MODELS-AND-LICENSES.md).
 
 ## License
 
