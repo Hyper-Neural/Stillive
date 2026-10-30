@@ -984,3 +984,6 @@ body.econome :is(svg[class^="anim-"] *, .logo .oeil, .plus-bas svg, .invite, .fl
 /* 30/10 : panneau « Changer le souvenir » de l'étape 4 d'Entrer */
 #feuille-souvenir .tuile { min-height: 170px; }
 .feuille-annuler { display: block; margin: 16px auto 0; font-size: 16px; }
+/* 30/10 : étape 1, historique des souvenirs sous les deux tuiles ; caché dès qu'une photo est en place */
+.reserve-depart { margin-top: 14px; }
+#ecran-accueil.avec-photo .reserve-depart { display: none !important; }
