@@ -6,6 +6,7 @@ programme les place dans la partition (ligne d'instruction I2VA, trois champs).
 """
 import json
 import os
+import random
 import re
 import time
 
@@ -397,7 +398,7 @@ Describe only what is visible. Answer with JSON only, no other text, using exact
  "life": "one or two short English sentences PER other visible person, from left to right, each starting with how to recognise them (e.g. 'The grandmother on the left'): the natural, logical sequence of two or three ordinary actions this person does during the clip, at real-life speed, looking at the main action or at someone (e.g. sets the bottle down on the table, turns to watch the child, claps), with only a small change on their face (a slight smile, a glance). Nobody stays still, holds a pose or stares at the camera",
  "nature": "one English sentence: the natural motion around them (wind, water, flames, smoke, light), consistent with indoors or outdoors",
  "ambient_sounds": "one or two English sentences: the sounds of these exact actions first (a breath blowing, hands clapping, laughter, glasses clinking), then the place, without any speech, singing or music",
- "music_mood": "the background music this memory deserves, as concrete sound: two or three named instruments, a tempo and a rhythm, in one short English phrase (for example: upbeat acoustic guitar strums with hand claps and a light tambourine at a lively tempo), never only mood words",
+ "music_mood": "the background music this memory deserves, as concrete sound: two or three named instruments, a tempo and a rhythm, in one short English phrase, never only mood words. __MUSIQUE__",
  "fun_fact": "one short warm sentence in French about this scene or its era, for the people watching"
 }"""
 
@@ -438,13 +439,39 @@ def _nettoyer(souhait, maxi=900):
     return " ".join((souhait or "").replace("<", " ").replace(">", " ").split())[:maxi]
 
 
+# Musique (30/10) : l'ancien exemple unique (guitare sèche, claquements de mains) était recopié presque à chaque film.
+# Le genre part de la photo (époque, pays, occasion, énergie) ; une famille d'instruments tirée au hasard ouvre la palette,
+# suivie seulement si elle colle à l'image.
+PISTES_MUSIQUE = [
+    "a piano, a Rhodes electric piano or an organ",
+    "strings: violin, cello, mandolin or a small string ensemble",
+    "woodwinds or brass: clarinet, flute, muted trumpet or saxophone",
+    "tuned percussion: marimba, vibraphone, glockenspiel or steel drums",
+    "a small jazz combo: brushed drums, upright bass and piano or guitar",
+    "an accordion, a harmonica or a bandoneon",
+    "vintage synthesizers and a drum machine",
+    "a local folk tradition of the place shown, with its own instruments",
+    "a swing, bossa nova or soul groove",
+    "a harp, a celesta or a music-box melody",
+]
+
+
+def _consigne_musique():
+    return ("Choose the genre from what the photo shows: its decade (clothes, colours, photo quality), its country and "
+            "culture, the occasion and the energy of the people, so that two different photos get clearly different music. "
+            "Avoid the cliché of a generic acoustic guitar strum unless the scene truly calls for it (a campfire, a beach "
+            f"bonfire). For this photo, consider building it around {random.choice(PISTES_MUSIQUE)}, if that fits the era "
+            "and the place; otherwise choose freely what fits best.")
+
+
 def prompt_pour(secondes=7, souhait=None):
     """Consigne d'analyse adaptée à la durée du clip (7 s, sans souhait = texte d'origine, inchangé)."""
     souhait = _nettoyer(souhait, 1400)   # phrase d'entrée (jusqu'à ~850) + texte libre (500), 29/10
+    base = PROMPT.replace("__MUSIQUE__", _consigne_musique())
     if secondes == 7:
-        return PROMPT + (SOUHAIT.format(souhait=souhait) if souhait else "")
+        return base + (SOUHAIT.format(souhait=souhait) if souhait else "")
     lo, hi = mots_vises(secondes)
-    text = (PROMPT.replace("7-second", f"{secondes}-second")
+    text = (base.replace("7-second", f"{secondes}-second")
             .replace("within 7 seconds", f"within {secondes} seconds")
             .replace("(first 2 seconds)", "(the first third of the clip)")
             .replace("(seconds 2 to 5)", "(the middle third)")
