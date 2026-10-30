@@ -93,7 +93,9 @@ let langue = langueDetectee();
 const etat = {
   porte: localStorage.getItem("stillive.porte") === "entrer" ? "entrer" : "souvenir",
   photos: [], image: null, moi: null, corps: null,
+  depart: null,                  // photo ajoutée à l'étape 1 (accueil) ; copiée dans la case de la voie choisie à l'étape 2
   choix: "auto",                 // carte choisie dans la porte Faire revivre (clé de GESTES_SOUVENIR)
+  voie: { souvenir: "auto", entrer: "auto" },   // voie dépliée : auto | raconter | amuser ; c'est elle qui décide de ce qui part au serveur
   secondes: DUREES.includes(+localStorage.getItem("stillive.secondes")) ? +localStorage.getItem("stillive.secondes") : 5,   // 5 s au départ, puis le dernier choix
   look: "aucun", couleurs: "auto", ambiance: "auto",
   film: null, format: "vertical", minuterie: null, resultat: null,
@@ -108,6 +110,7 @@ const $ = (id) => document.getElementById(id);
 // Le code QR ouvre « /?cle=... » : on garde le code, et on le remet dans l'adresse s'il y manque
 // (le favori et l'écran d'accueil du téléphone le conservent alors).
 const CLE_SECRETE = "stillive.cle";
+const CLE_BIENVENUE = "stillive.bienvenue";      // accueil de bienvenue déjà vu sur cet appareil
 function cleSecrete() {
   try { return localStorage.getItem(CLE_SECRETE) || ""; } catch { return ""; }
 }
@@ -203,6 +206,38 @@ function rendre() {
 // au lieu de quitter Stillive.
 // L'historique garde une profondeur (i = nombre d'écrans empilés depuis l'accueil) : revenir à l'accueil
 // recule d'autant au lieu d'empiler un nouvel accueil.
+// Pages du parcours guidé, dans l'ordre (sens du glissement) ; « souvenir » et « toi » sont la 3e page de leur voie.
+const RANG_PARCOURS = { bienvenue: 0, accueil: 1, choix: 2, souvenir: 3, toi: 3, entrer: 4 };
+const pileParcours = ["accueil"];     // pages du parcours dans l'ordre où on les a traversées
+// Repère d'étapes sous la barre du haut : [étape en cours, nombre d'étapes]. 3 étapes pour Faire revivre, 4 pour Entrer.
+const ETAPES_PARCOURS = { accueil: [1, 3], choix: [2, 3], souvenir: [3, 3], toi: [3, 4], entrer: [4, 4] };
+function majReperes(ecran) {
+  const nav = $("reperes");
+  const p = ETAPES_PARCOURS[ecran];
+  nav.hidden = !p;
+  if (!p) return;
+  const [courante, total] = p;
+  const chemin = total === 4 ? ["accueil", "choix", "toi", "entrer"] : ["accueil", "choix", "souvenir"];   // pages de chaque étape
+  nav.innerHTML = "";
+  for (let n = 1; n <= total; n++) {
+    const fait = n < courante;
+    const s = document.createElement(fait ? "button" : "span");     // les étapes déjà faites ramènent à leur page
+    s.className = `repere ${fait ? "fait" : n === courante ? "courant" : "futur"}`;
+    s.textContent = fait ? "✓" : String(n);
+    if (fait) {
+      s.type = "button";
+      s.setAttribute("aria-label", t("repere.revenir", { n }));
+      s.onclick = () => {
+        const cible = chemin[n - 1];
+        if (n === 1) return montrer("accueil");                       // gère déjà le retour par l'historique
+        const j = pileParcours.lastIndexOf(cible), k = pileParcours.length - 1 - j, i = history.state?.i || 0;
+        if (j >= 0 && k > 0 && i >= k) history.go(-k); else montrer(cible, "remplacer");   // même glissement vers l'arrière, état conservé
+      };
+    }
+    nav.append(s);
+  }
+}
+
 function montrer(ecran, historique = true) {
   if (etat.cleRequise) { ecran = "cle"; historique = "remplacer"; }   // sans le code, un seul écran possible
   const profondeur = history.state?.i || 0;
@@ -216,13 +251,25 @@ function montrer(ecran, historique = true) {
   if (ecran !== "attente") arreterAttente();
   if (ecran !== "scan-cadre") scan.jeton = (scan.jeton || 0) + 1;   // un scan en cours est abandonné : sa photo ne rouvre plus la porte (audit 30/10)
   if (ecran !== "resultat") viderFilm();
+  // Les pages du parcours glissent : la nouvelle entre par la droite, un retour glisse dans l'autre sens
+  const avant = RANG_PARCOURS[etat.ecran], apres = RANG_PARCOURS[ecran];
+  document.body.dataset.sens = apres === undefined ? "" : (avant !== undefined && apres < avant ? "arriere" : "avant");
+  if (apres !== undefined) {                          // pages du parcours déjà traversées (pour les pastilles cliquables)
+    const j = pileParcours.lastIndexOf(ecran);
+    if (j >= 0) pileParcours.length = j + 1; else pileParcours.push(ecran);
+  }
   etat.ecran = ecran;
   masquerBandeau(); masquerBulle();
   document.body.dataset.ecran = ecran;        // la barre du haut montre « Retour » et « Accueil » hors de l'accueil
+  majReperes(ecran);
   placerFrise(ecran);
   setTimeout(majPlusBas, 600);                // après le défilement vers le haut
-  document.querySelectorAll(".ecran").forEach((e) => { e.hidden = e.id !== `ecran-${ecran}`; });
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.querySelectorAll(".ecran").forEach((e) => { e.hidden = e.id !== `ecran-${ecran}`; e.style.paddingBottom = ""; });
+  window.scrollTo({ top: 0, behavior: "auto" });     // net : le glissement de la page suffit comme mouvement
+  // Animations dessinées figées pendant le glissement (le téléphone n'a qu'une chose à dessiner à la fois)
+  document.body.classList.add("en-glisse");
+  clearTimeout(montrer.glisse);
+  montrer.glisse = setTimeout(() => document.body.classList.remove("en-glisse"), 520);
   if (historique === "remplacer") history.replaceState({ ecran, i: ecran === "accueil" ? 0 : profondeur }, "");   // l'attente finie ne revient pas au retour
   else if (historique && history.state?.ecran !== ecran) history.pushState({ ecran, i: profondeur + 1 }, "");
   if (ecran === "accueil") { chargerGalerie(); verifierPrep(); }
@@ -242,8 +289,11 @@ function placerFrise(ecran) {
 // Un film en cours change d'état pendant qu'on navigue : sondage léger toutes les 5 s, sur TOUS les écrans,
 // seulement s'il y a un film en cours (l'attente a son propre suivi). Il continue page cachée : c'est lui qui
 // déclenche la notification « prêt » (29/10).
+// Batterie (30/10) : téléphone en veille ou application en arrière-plan, une fois sur trois seulement (15 s).
+let tourGalerie = 0;
 setInterval(() => {
   if (etat.ecran === "attente" || !galerie.films.some(enCours)) return;
+  if (document.hidden && ++tourGalerie % 3) return;
   chargerGalerie();
 }, 5000);
 
@@ -265,17 +315,43 @@ function fermerSurcouche(s) {
   history.back();
 }
 
+let apresRetour = null;                 // action à faire quand le retour d'historique demandé est arrivé
+
+// « Tu voulais plutôt... ? » : même effet que la carte de l'autre voie à l'étape 2. Le retour de la nouvelle voie mène à l'étape 2.
+function changerVoie(porte) {
+  if (!etat.depart) return;
+  const j = pileParcours.lastIndexOf("choix"), k = pileParcours.length - 1 - j, i = history.state?.i || 0;
+  if (j >= 0 && k > 0 && i >= k) {
+    pileParcours.length = j + 1;
+    apresRetour = () => choisirVoie(porte);
+    history.go(-k);
+  } else choisirVoie(porte);            // arrivé sans passer par l'étape 2 (« Refaire ») : on ouvre simplement l'autre voie
+}
+
 window.onpopstate = (e) => {
   if (popIgnores > 0) { popIgnores--; return; }
   if (surcouches.length) { surcouches.pop().dom(); return; }
+  if (apresRetour) { const f = apresRetour; apresRetour = null; f(); return; }   // changement de voie : on est revenu à l'étape 2, la nouvelle voie s'ouvre aussitôt
   const ecran = e.state?.ecran || "accueil";
   if (ecran === "attente" && etat.film) return commencerAttente(false);
   if (ecran === "resultat" && etat.resultat) return resultat(etat.resultat, false);
-  if (["souvenir", "entrer", "scan-conseils", "galerie"].includes(ecran)) return montrer(ecran, false);
+  if (["souvenir", "entrer", "choix", "toi", "scan-conseils", "galerie"].includes(ecran)) return montrer(ecran, false);
   montrer("accueil", false);              // écrans de passage (scan en cours, erreur) : retour à l'accueil
 };
 
+// Étape 2 : la photo de l'étape 1 va dans SA case (celle de la voie choisie), comme si elle y avait été choisie.
+async function choisirVoie(porte) {
+  const f = etat.depart;
+  if (!f) return;
+  if (porte === "souvenir") await ajouterPhotos([f], true);
+  else { etat.image = f; majPhotos(); }
+  if (porte === "souvenir") return ouvrirPorte(porte);
+  etat.porte = porte;                 // Entrer : d'abord « Prends-toi en photo », puis les options
+  montrer("toi");
+}
+
 function ouvrirPorte(porte) {
+  if (porte === "depart") { majPhotos(); return montrer("accueil"); }   // retour du scan lancé depuis l'étape 1
   etat.porte = porte;
   for (const id of ["souvenir-message", "entrer-message"]) $(id).hidden = true;
   majPhotos();
@@ -323,10 +399,37 @@ function rendreAccessible(label) {
 }
 
 // --- Photos et cases ---
+// Affichage seulement (30/10, rapidité) : une copie de 1200 px au plus remplace l'original dès qu'elle est prête ;
+// une photo de 12 Mpx décodée en grand à chaque page ralentissait le téléphone. L'envoi garde l'original (reduire()).
 const adresses = new WeakMap();
+const apercus = new WeakMap();
+const COTE_APERCU = 1200;
 function adresse(fichier) {
-  if (!adresses.has(fichier)) adresses.set(fichier, URL.createObjectURL(fichier));
+  if (apercus.has(fichier)) return apercus.get(fichier);
+  if (!adresses.has(fichier)) {
+    adresses.set(fichier, URL.createObjectURL(fichier));
+    preparerApercu(fichier);
+  }
   return adresses.get(fichier);
+}
+async function preparerApercu(fichier) {
+  let img = null;
+  try {
+    img = await createImageBitmap(fichier);
+    const k = COTE_APERCU / Math.max(img.width, img.height);
+    if (k >= 1) return;                            // déjà petite : l'original suffit
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(img.width * k));
+    c.height = Math.max(1, Math.round(img.height * k));
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.88));
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    apercus.set(fichier, url);
+    const original = adresses.get(fichier);
+    document.querySelectorAll("img").forEach((i) => { if (i.src === original) i.src = url; });
+  } catch { /* format illisible ici : l'original reste affiché */ }
+  finally { if (img) img.close(); }
 }
 
 function majCase(id, fichier) {
@@ -353,7 +456,8 @@ function premiereImage(fichiers) {
 
 // Le message « photo refusée » s'écrit dans l'écran où l'on se trouve.
 function messagePhotoRefusee() {
-  avertir(etat.ecran === "entrer" ? "entrer-message" : "souvenir-message", "photo.refusee");
+  const message = { entrer: "entrer-message", toi: "toi-message", accueil: "depart-message" }[etat.ecran] || "souvenir-message";
+  avertir(message, "photo.refusee");
 }
 
 // Choix d'une seule photo (cases de la porte « Entrer dans une image ») : on garde l'ancienne si rien n'est accepté.
@@ -540,6 +644,7 @@ async function oublier(p) {
 function reprendre(cible, p) {
   const fichier = new File([p.blob], p.nom, { type: p.blob.type || "image/jpeg" });
   if (cible === "souvenir") ajouterPhotos([fichier], true);
+  else if (cible === "depart") choisirUne([fichier], (f) => { etat.depart = f; }, "souvenir");
   else if (cible === "image") choisirUne([fichier], (f) => { etat.image = f; }, "souvenir");
   else if (cible === "moi") choisirUne([fichier], (f) => { etat.moi = f; }, "visage");
   else if (cible === "corps") choisirUne([fichier], (f) => { etat.corps = f; }, "corps");
@@ -617,10 +722,28 @@ function majPhotos() {
   $("bloc-simple").hidden = multi;
   $("bloc-film").hidden = !multi;
   $("creer-souvenir").textContent = t(multi ? "film.creer" : "souvenir.creer");
+  // Photo déjà là (refaire, scan...) : l'étape 1 la montre aussi. Dans un écran d'options, la photo de sa case fait foi.
+  if (etat.ecran === "souvenir" && etat.photos[0]) etat.depart = etat.photos[0];
+  else if (etat.ecran === "entrer" && etat.image) etat.depart = etat.image;
+  else if (!etat.depart) etat.depart = etat.photos[0] || etat.image || null;
+  majCase("case-depart", etat.depart);
+  $("depart-choix").hidden = !!etat.depart;                                   // étape 1 : les deux tuiles tant qu'il n'y a pas de photo...
+  $("depart-photo").hidden = !etat.depart;                                    // ... puis la photo en grand, « Changer » et « Suivant »
+  $("depart-suivant").hidden = !etat.depart;
+  $("depart-prive").hidden = !!etat.depart;
+  $("ecran-accueil").classList.toggle("avec-photo", !!etat.depart);
+  $("toi-message").hidden = true;
   majCase("case-souvenir", etat.photos[0] || null);
   majCase("case-image", etat.image);
+  for (const [id, f] of [["rappel-s-img", etat.photos[0]], ["rappel-e-img", etat.image]]) {   // rappel compact dans les écrans d'options
+    const img = $(id);
+    img.hidden = !f;
+    if (f) img.src = adresse(f);
+  }
+  $("depart-message").hidden = true;
   majCase("case-moi", etat.moi);
   majCase("case-corps", etat.corps);
+  document.querySelector(".puce-conseil").hidden = !!etat.corps;     // « Conseillé » disparaît dès que la photo en pied est là
   if (etat.idees.pour && etat.idees.pour !== etat.photos[0]) viderIdees(false);   // autre photo : plus d'idées
   $("souvenir-message").hidden = true;
   $("entrer-message").hidden = true;
@@ -686,13 +809,61 @@ boxPrecision.className = "geste-precision";
 boxPrecision.id = "geste-precision";
 boxPrecision.hidden = true;
 
+const tuilesVoies = {};       // porte -> bloc des trois tuiles, gardé d'un rendu à l'autre
+const autoOuvert = { souvenir: false, entrer: false };   // vrai le temps d'un envoi, juste après le choix fidèle / surprise
 function rendreGestes() {
   majTexteSeul();
-  $("aide-calin").hidden = etat.gestes.entrer !== "calin_enfant";
+  $("aide-calin").hidden = !(etat.voie.entrer === "amuser" && etat.gestes.entrer === "calin_enfant");
   for (const [porte, id, liste] of [["souvenir", "gestes-s", GESTES_SOUVENIR], ["entrer", "gestes-e", GESTES_ENTRER]]) {
     const box = $(id);
-    box.innerHTML = "";
+    // Les trois tuiles (avec leur animation) sont créées UNE fois et gardées : on ne les retire jamais de la page,
+    // sinon leur boucle repartirait à zéro à chaque toucher. Tout le reste de la zone est refait.
+    const voie = etat.voie[porte];
+    let tuiles = tuilesVoies[porte];
+    if (!tuiles) {
+      tuiles = tuilesVoies[porte] = document.createElement("div");
+      tuiles.className = "voies-trois";
+      tuiles.setAttribute("role", "group");
+      // Ordre voulu, de gauche à droite : Automatique, Pour s'amuser, À toi de raconter
+      for (const v of ["auto", "amuser", "raconter"]) {
+        const tuile = document.createElement("button");
+        tuile.type = "button";
+        tuile.className = "voie-tuile";
+        tuile.dataset.voie = v;
+        const anim = document.createElement("span");
+        anim.className = "voie-anim";
+        anim.setAttribute("aria-hidden", "true");
+        const modele = $(`tpl-voie-${porte}-${v}`);       // animation validée (animations-voies.html), clonée telle quelle
+        if (modele) anim.append(modele.content.cloneNode(true));
+        tuile.append(anim);
+        tuile.insertAdjacentHTML("beforeend", "<strong></strong><small></small>");
+        tuile.onclick = () => {
+          etat.voie[porte] = v;
+          $("souvenir-message").hidden = true;
+          $("entrer-message").hidden = true;
+          rendreGestes();
+          if (v === "raconter") {                          // le clavier s'ouvre et le bloc file en haut de l'écran
+            const champ = porte === "souvenir" ? $("scene") : $("phrase");
+            champ.focus({ preventScroll: true });
+            remonterRaconter(champ);
+          }
+        };
+        tuiles.append(tuile);
+      }
+      observerAnims(tuiles);
+    }
+    tuiles.setAttribute("aria-label", t("geste.label_entrer"));
+    for (const tuile of tuiles.children) {
+      const v = tuile.dataset.voie;
+      tuile.setAttribute("aria-pressed", voie === v);
+      tuile.querySelector("strong").textContent = t(`voies.${v}`);
+      tuile.querySelector("small").textContent = t(`voies.legende.${porte}.${v}`);
+    }
+    for (const enfant of [...box.children]) if (enfant !== tuiles) enfant.remove();
+    if (!tuiles.parentNode) box.prepend(tuiles);
     const boutons = [];
+    const sous = document.createElement("div");             // Pour s'amuser : la galerie des gestes préréglés
+    sous.className = "galerie-gestes sous";
     for (const g of liste) {
       const cle = g.cle || g.code;
       const tit = g.tit || `geste.${cle}`;
@@ -716,53 +887,23 @@ function rendreGestes() {
         }
       };
       boutons.push(b);
-      if (cle !== "auto") { box.append(b); continue; }
-      // Automatique (29/10) : la carte et son choix (fidèle / surprise) forment UN bloc, le choix en deux boutons
-      // segmentés DANS la carte. Toucher un des deux choisit aussi Automatique.
-      const bloc = document.createElement("div");
-      bloc.className = "bloc-auto" + (choisie ? " choisi" : "");
-      const segments = document.createElement("div");
-      segments.className = "segments";
-      segments.setAttribute("role", "group");
-      segments.setAttribute("aria-label", t(tit));
-      const champ = porte === "souvenir" ? "animer" : "entrer";       // etat.gesteValeur.animer / .entrer
-      for (const c of ["naturel", "surprise"]) {
-        const s = document.createElement("button");
-        s.type = "button";
-        s.className = "segment";
-        s.setAttribute("aria-pressed", choisie && etat.gesteValeur[champ] === c);
-        s.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-${c === "naturel" ? "photo" : "etincelle"}"/></svg><strong></strong><span></span>`;
-        s.querySelector("strong").textContent = t(`geste.${champ}_${c}`);
-        s.querySelector("span").textContent = t(`geste.${champ}_${c}_d`);
-        s.onclick = () => {
-          etat.gesteValeur[champ] = c;
-          if (porte === "souvenir") etat.choix = "auto"; else etat.gestes.entrer = null;
-          $("souvenir-message").hidden = true;
-          rendreGestes();
-        };
-        segments.append(s);
-      }
-      bloc.append(b, segments);
-      box.append(bloc);
-      // Texte libre (« À toi de raconter » / « Tu veux préciser ? ») : juste après Automatique, avant les bonus
-      box.append(blocRaconter[porte]);
-      {   // la suite est en bonus : un petit titre les sépare
-        const bonus = document.createElement("p");
-        bonus.className = "gestes-bonus";
-        bonus.textContent = t("geste.bonus");
-        box.append(bonus);
-      }
+      if (cle !== "auto") sous.append(b);   // Automatique : pas de carte ; fidèle / surprise se choisit au bouton final (demanderAuto)
     }
+    // Seul le contenu de la voie choisie est déplié. Le bloc de texte libre reste dans la page (replié) : ses champs sont lus par id.
+    box.append(blocRaconter[porte]);
+    blocRaconter[porte].hidden = voie !== "raconter";
+    if (voie === "raconter") grandir(porte === "souvenir" ? $("scene") : $("phrase"));   // texte remis par une idée ou une reprise
+    if (voie === "amuser") box.append(sous);
     if (porte !== "souvenir") continue;
     const carte = carteSouvenir();
-    if (carte.cle !== "auto" && PRECISIONS[carte.geste]) {   // fin de la ligne de la carte choisie (cartes larges seules, autres par 2)
+    if (voie === "amuser" && carte.cle !== "auto" && PRECISIONS[carte.geste]) {   // fin de la ligne de la carte choisie (cartes larges seules, autres par 2)
       let i = liste.indexOf(carte);
       if (!carte.large) {
         let debut = i;                              // début de la suite de cartes non larges qui contient la carte
         while (debut > 0 && !liste[debut - 1].large) debut--;
         if ((i - debut) % 2 === 0 && liste[i + 1] && !liste[i + 1].large) i++;   // 1re de la ligne : la précision passe après la 2e
       }
-      box.insertBefore(boxPrecision, boutons[i + 1] || null);   // Animer ma photo : son choix est dans le bloc Automatique
+      sous.insertBefore(boxPrecision, boutons[i + 1] || null);   // Animer ma photo : son choix est dans la voie Automatique
     } else boxPrecision.remove();
   }
   rendrePrecision();
@@ -772,7 +913,7 @@ function rendreGestes() {
 function rendrePrecision() {
   const box = boxPrecision;
   const geste = carteSouvenir().geste;
-  const p = carteSouvenir().cle === "auto" ? null : PRECISIONS[geste];   // Automatique : son choix est dans sa carte
+  const p = carteSouvenir().cle === "auto" || etat.voie.souvenir !== "amuser" ? null : PRECISIONS[geste];   // Automatique : son choix est dans sa voie
   box.innerHTML = "";
   box.hidden = !p;
   if (!p) return;
@@ -847,12 +988,66 @@ function rendrePrecision() {
 // Clavier du téléphone ouvert : le bouton collé en bas (Faire revivre, Entrer) remonte juste au-dessus du clavier
 // au lieu de rester caché dessous (--clavier = hauteur cachée par le clavier, 0 sinon).
 if (window.visualViewport) {
+  let cacheAvant = 0;
   const majClavier = () => {
     const cache = Math.max(0, Math.round(innerHeight - visualViewport.height - visualViewport.offsetTop));
+    // Clavier refermé (bouton retour d'Android) sans quitter la zone de texte : on la quitte, la page remonte
+    if (cacheAvant > 120 && cache < 60 && ["scene", "phrase"].includes(document.activeElement?.id)) document.activeElement.blur();
+    cacheAvant = cache;
     document.documentElement.style.setProperty("--clavier", `${cache}px`);
   };
   visualViewport.addEventListener("resize", majClavier);
   visualViewport.addEventListener("scroll", majClavier);
+}
+
+// « À toi de raconter » (30/10) : la zone de texte grandit avec ce qu'on écrit, et remonte tout en haut de
+// l'écran pour rester visible au-dessus du clavier du téléphone.
+// Animations dessinées (étape 2, trois voies, fidèle / surprise) : en pause quand elles sont hors de l'écran
+const veilleAnims = "IntersectionObserver" in window
+  ? new IntersectionObserver((vus) => { for (const v of vus) v.target.classList.toggle("anim-pause", !v.isIntersecting); })
+  : null;
+function observerAnims(racine) {
+  if (veilleAnims) racine.querySelectorAll('svg[class^="anim-"]').forEach((s) => veilleAnims.observe(s));
+}
+observerAnims(document);
+
+function grandir(champ) {
+  if (!champ.offsetParent) { champ.style.height = ""; return; }   // caché : pas de mesure possible
+  champ.style.height = "auto";
+  champ.style.height = `${champ.scrollHeight + 2}px`;
+}
+function remonterRaconter(champ) {
+  const bloc = champ.closest(".raconter");
+  champ.closest("main").style.paddingBottom = "";        // place ajoutée à la sortie du texte : remplacée par celle de la saisie
+  champ.closest("main").classList.add("en-saisie");     // place en bas pour pouvoir remonter le bloc
+  const go = () => bloc.scrollIntoView({ block: "start", behavior: "smooth" });
+  requestAnimationFrame(go);
+  setTimeout(go, 350);           // une 2e fois, une fois le clavier ouvert (la page a changé de hauteur)
+}
+for (const id of ["scene", "phrase"]) {
+  const champ = $(id);
+  champ.addEventListener("input", () => grandir(champ));
+  champ.addEventListener("focus", () => remonterRaconter(champ));
+  // Clavier fermé, retour, ou toucher hors du bloc : la page revient à « Que se passe-t-il ? », pour voir les trois voies
+  champ.addEventListener("blur", (e) => {
+    const main = champ.closest("main");
+    main.classList.remove("en-saisie");
+    if (e.relatedTarget && champ.closest(".raconter").contains(e.relatedTarget)) return;   // gomme, idées : on reste
+    const titre = main.querySelector('[id^="bloc-gestes-"] h2');
+    if (!titre || main.hidden) return;
+    // Le titre doit pouvoir monter jusque sous la barre du haut : si la page est trop courte en dessous, on lui ajoute
+    // juste la place qui manque (sinon le navigateur s'arrête plus bas). Refait une fois le clavier refermé.
+    const remonter = () => {
+      main.style.paddingBottom = "";
+      const haut = document.querySelector(".barre").getBoundingClientRect().bottom + 8;
+      const cible = titre.getBoundingClientRect().top + scrollY - haut;
+      const manque = cible + innerHeight - document.documentElement.scrollHeight;
+      if (manque > 0) main.style.paddingBottom = `${parseFloat(getComputedStyle(main).paddingBottom) + manque}px`;
+      scrollTo({ top: cible, behavior: "smooth" });
+    };
+    remonter();
+    setTimeout(remonter, 400);
+  });
 }
 
 // --- « Pas d'idée ? » : trois idées proposées par l'IA d'après la photo ---
@@ -868,31 +1063,20 @@ function viderIdees(tout = true) {
 // Texte perso OU cartes (30/10) : texte actif = les cartes s'estompent et seul le texte part (creerSouvenir,
 // creerEntrer). Toucher une carte met le texte EN PAUSE (grisé, gardé, ignoré à l'envoi) ; toucher le texte le
 // reprend. La gomme du champ l'efface d'un coup.
-const textePerso = (champ) => ($(champ).classList.contains("en-pause") ? "" : $(champ).value.trim());
-function reprendreTexte(champ) { $(champ).classList.remove("en-pause"); majTexteSeul(); }
+// 31/10 : trois voies séparées. Le texte ne part QUE si la voie « À toi de raconter » est choisie (plus de mise en pause).
+const PORTE_DU_CHAMP = { scene: "souvenir", phrase: "entrer" };
+const textePerso = (champ) => (etat.voie[PORTE_DU_CHAMP[champ]] === "raconter" ? $(champ).value.trim() : "");
+function reprendreTexte(champ) { majTexteSeul(); }
 function majTexteSeul() {
   for (const champ of ["scene", "phrase"]) {
-    const ecrit = !!$(champ).value.trim(), pause = $(champ).classList.contains("en-pause");
-    $(champ === "scene" ? "gestes-s" : "gestes-e").classList.toggle("texte-seul", ecrit && !pause);
-    $(`${champ}-seul`).hidden = !ecrit || pause;
-    $(`${champ}-pause`).hidden = !ecrit || !pause;
-    $(`${champ}-gomme`).hidden = !ecrit;
+    $(`${champ}-seul`).hidden = true;
+    $(`${champ}-pause`).hidden = true;
+    $(`${champ}-gomme`).hidden = !$(champ).value.trim();
   }
 }
 $("phrase").addEventListener("input", majTexteSeul);
 
-for (const [cartes, champ] of [["gestes-s", "scene"], ["gestes-e", "phrase"]]) {
-  const conteneur = $(cartes);
-  const pause = (e) => {                                     // une carte, un sous-choix ou un champ de précision touché
-    if (!textePerso(champ) || e.target.closest(".raconter")) return;   // le bloc de texte libre est dans la grille
-    if (!e.target.closest("button, .pastille, input")) return;
-    $(champ).classList.add("en-pause");
-    majTexteSeul();
-  };
-  conteneur.addEventListener("click", pause, true);         // capture : la carte reçoit ensuite son toucher normalement
-  conteneur.addEventListener("focusin", pause);
-  $(champ).addEventListener("focus", () => reprendreTexte(champ));
-  $(champ).addEventListener("pointerdown", () => reprendreTexte(champ));   // déjà focalisé (iPhone) : pas de « focus »
+for (const champ of ["scene", "phrase"]) {
   $(champ).addEventListener("input", () => reprendreTexte(champ));
   $(`${champ}-gomme`).onclick = () => {
     $(champ).value = "";
@@ -930,6 +1114,7 @@ function rendreIdees() {
     b.append(emoji, titre, resume);
     b.onclick = () => {
       $("scene").value = p.resume;
+      grandir($("scene"));
       reprendreTexte("scene");
       etat.idees.choisie = { titre: p.titre, resume: p.resume, souhait: p.souhait };
       $("souvenir-message").hidden = true;
@@ -941,7 +1126,7 @@ function rendreIdees() {
 
 async function demanderIdees() {
   if (etat.idees.attente) return;
-  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "case-souvenir");
+  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "rappel-s");
   const photo = etat.photos[0];
   etat.idees.attente = true;
   $("idees-message").hidden = true;
@@ -976,6 +1161,9 @@ function nouvelleCreation() {
   $("phrase").classList.remove("en-pause");
   $("phrase").value = "";              // Entrer aussi (30/10) : sinon le texte gardé estompait les cartes du suivant
   viderIdees();
+  etat.voie = { souvenir: "auto", entrer: "auto" };      // trois voies : retour à Automatique
+  autoOuvert.souvenir = autoOuvert.entrer = false;        // replié : il vaut alors « fidèle »
+  etat.gesteValeur.animer = etat.gesteValeur.entrer = "naturel";
   majTexteSeul();
   $("souvenir-message").hidden = true;
 }
@@ -1032,8 +1220,42 @@ async function envoyer(photos, options, extra, bouton) {
   }
 }
 
+// Automatique (30/10, demande de l'utilisateur) : rien ne se déplie sous la tuile ; au bouton final, deux gros boutons
+// animés demandent fidèle ou surprise, à chaque film, et le film part aussitôt.
+function demanderAuto(porte) {
+  const champ = porte === "souvenir" ? "animer" : "entrer";
+  const box = $("feuille-auto-choix");
+  box.replaceChildren();
+  for (const c of ["naturel", "surprise"]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "voie-tuile choix-auto";
+    const anim = document.createElement("span");
+    anim.className = "voie-anim";
+    anim.setAttribute("aria-hidden", "true");
+    anim.append($(`tpl-auto-${porte}-${c}`).content.cloneNode(true));
+    b.append(anim);
+    b.insertAdjacentHTML("beforeend", "<strong></strong><small></small>");
+    b.querySelector("strong").textContent = t(`geste.${champ}_${c}`);
+    b.querySelector("small").textContent = t(`geste.${champ}_${c}_d`);
+    b.onclick = () => {
+      etat.gesteValeur[champ] = c;
+      fermerAuto();
+      autoOuvert[porte] = true;                  // la question est posée à chaque film : la réponse ne vaut que pour celui-ci
+      try { (porte === "souvenir" ? creerSouvenir : creerEntrer)(); } finally { autoOuvert[porte] = false; }
+    };
+    box.append(b);
+  }
+  observerAnims(box);
+  $("feuille-auto").hidden = false;
+  box.firstChild.focus({ preventScroll: true });
+}
+function fermerAuto() { $("feuille-auto").hidden = true; }
+document.querySelectorAll("[data-fermer-auto]").forEach((el) => { el.onclick = fermerAuto; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("feuille-auto").hidden) fermerAuto(); });
+
 function creerSouvenir() {
-  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "case-souvenir");
+  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "rappel-s");
   if (etat.photos.length > 1) {          // film à plusieurs photos : le serveur fait le film long
     return envoyer(etat.photos, {
       titre: $("titre").value.trim(), couleurs: etat.photos.map((f) => !!f.colorier), ambiance: etat.ambiance,
@@ -1041,8 +1263,14 @@ function creerSouvenir() {
   }
   // « À toi de raconter » : texte écrit = SEUL ce texte part (amélioré par l'analyse), la carte choisie ne s'ajoute
   // pas, sinon deux consignes se mélangent (« les gens dansent » + Changer d'époque). Décision de l'utilisateur, 30/10.
-  let scene = textePerso("scene");               // geste et texte vides = Automatique : la scène vient de la photo
-  const carte = scene ? { recette: "revit" } : carteSouvenir();
+  // 31/10, trois voies : Automatique = ni texte ni geste préréglé ; À toi de raconter = le texte (obligatoire) ;
+  // Pour s'amuser = le geste choisi (obligatoire). Une seule voie part, jamais un mélange.
+  const voie = etat.voie.souvenir;
+  let scene = textePerso("scene");
+  if (voie === "raconter" && !scene) { $("scene").focus(); return avertir("souvenir-message", "alerte.pas_de_texte", "scene"); }
+  if (voie === "amuser" && carteSouvenir().cle === "auto") return avertir("souvenir-message", "alerte.pas_de_geste", "gestes-s");
+  if (voie === "auto" && !autoOuvert.souvenir) return demanderAuto("souvenir");
+  const carte = scene ? { recette: "revit" } : voie === "amuser" ? carteSouvenir() : GESTES_SOUVENIR[0];
   const options = { recette: carte.recette, secondes: etat.secondes, mouvement: "auto", look: "aucun" };
   if (scene) {
     const idee = etat.idees.choisie;
@@ -1073,15 +1301,19 @@ function creerSouvenir() {
 }
 
 function creerEntrer() {
-  if (!etat.image) return avertir("entrer-message", "alerte.pas_d_image", "case-image");
-  if (!etat.moi) return avertir("entrer-message", "alerte.pas_de_moi", "case-moi");
+  if (!etat.image) return avertir("entrer-message", "alerte.pas_d_image", "rappel-e");
+  if (!etat.moi) { montrer("toi"); return avertir("toi-message", "alerte.pas_de_moi", "case-moi"); }   // la photo de la personne se prend sur sa page
   const options = { recette: "revit", secondes: etat.secondes, mouvement: "auto", look: "aucun" };
+  const voie = etat.voie.entrer;                 // trois voies (31/10) : une seule part, jamais un mélange
   const phrase = textePerso("phrase");
+  if (voie === "raconter" && !phrase) { $("phrase").focus(); return avertir("entrer-message", "alerte.pas_de_texte", "phrase"); }
+  if (voie === "amuser" && !etat.gestes.entrer) return avertir("entrer-message", "alerte.pas_de_geste", "gestes-e");
+  if (voie === "auto" && !autoOuvert.entrer) return demanderAuto("entrer");
   if (phrase) options.scene = phrase;
   // Texte écrit (30/10, décision de l'utilisateur) : seul le texte compte, l'entrée choisie ne s'ajoute pas ;
   // « naturel » n'ajoute aucune phrase et garde le verrou des visages.
   if (phrase) Object.assign(options, { geste: "entrer", geste_valeur: "naturel" });
-  else if (etat.gestes.entrer) options.geste = etat.gestes.entrer;
+  else if (voie === "amuser") options.geste = etat.gestes.entrer;
   else Object.assign(options, { geste: "entrer", geste_valeur: etat.gesteValeur.entrer });   // automatique (29/10)
   return envoyer([etat.image], options, { moi_visage: etat.moi, moi_corps: etat.corps }, "creer-entrer");
 }
@@ -1123,7 +1355,8 @@ function commencerAttente(historique = true) {
   majPrevenir();
   clearInterval(etat.minuterie);
   suivre();
-  etat.minuterie = setInterval(suivre, 4000);
+  let tourSuivi = 0;                       // batterie : en arrière-plan, une fois sur trois (12 s) ; la notification « prêt » suit
+  etat.minuterie = setInterval(() => { if (document.hidden && ++tourSuivi % 3) return; suivre(); }, 4000);
   clearInterval(attente.minAstuce);
   clearInterval(attente.minCompte);
   attente.fin = null;
@@ -1161,7 +1394,7 @@ function afficherCompte() {
 function majBarre(p) {
   attente.p = Math.max(attente.p, Math.min(0.97, p));   // ne recule jamais, ne finit jamais avant le film
   $("barre-attente").firstElementChild.style.width = `${(attente.p * 100).toFixed(1)}%`;
-  document.querySelectorAll("#tirages .developpe").forEach((img) => img.style.setProperty("--p", attente.p.toFixed(3)));
+  document.querySelectorAll("#tirages .pol-dev").forEach((pol) => pol.style.setProperty("--p", attente.p.toFixed(3)));
 }
 
 // Avancement d'après le serveur : temps écoulé / (écoulé + reste estimé). Le reste ne descend pas sous
@@ -1275,8 +1508,9 @@ function tirage(photo) {
   p.className = "pol";
   let vide;
   if (photo) {                        // la vraie photo, qui se révèle peu à peu
-    vide = Object.assign(document.createElement("img"), { src: photo, alt: "", className: "developpe" });
-    vide.style.setProperty("--p", attente.p.toFixed(3));
+    vide = Object.assign(document.createElement("img"), { src: photo, alt: "", className: "developpe", decoding: "async" });
+    p.classList.add("pol-dev");                  // le voile qui s'efface est posé sur le tirage (style.css)
+    p.style.setProperty("--p", attente.p.toFixed(3));
   } else {
     vide = document.createElement("div");
     vide.className = "revele";
@@ -1538,11 +1772,16 @@ async function chargerGalerie() {
 }
 
 // Deux vues des mêmes films : la frise de l'accueil et la page « Mes souvenirs » (grandes vignettes).
+let signatureGalerie = "";
 function rendreGalerie() {
   $("mes-films").hidden = !galerie.films.length;
   $("galerie-vide").hidden = !!galerie.films.length;
   majSuivi();
   const vus = lireListe(CLE_VUS);
+  // Rien de changé depuis le dernier rendu (appel toutes les 5 s pendant un film) : on ne refait pas les vignettes
+  const signature = JSON.stringify([galerie.films, vus, langue]);
+  if (signature === signatureGalerie) return;
+  signatureGalerie = signature;
   for (const boite of ["bande-accueil", "mur"]) {
     const liste = galerie.films;
     const box = $(boite);
@@ -1557,6 +1796,7 @@ function rendreGalerie() {
       const img = document.createElement("img");
       img.alt = "";
       img.loading = "lazy";
+      img.decoding = "async";
       if (f.photo) img.src = f.photo;
       const cap = document.createElement("span");
       cap.className = "legende";
@@ -1950,6 +2190,7 @@ async function refaire() {
       }
     }
     if (parGeste && PRECISIONS[parGeste.geste] && f.geste_valeur) etat.gesteValeur[parGeste.geste] = String(f.geste_valeur);
+    etat.voie.souvenir = f.scene ? "raconter" : etat.choix !== "auto" ? "amuser" : "auto";
     rendreGestes();
     reglages();
     rendreIdees();
@@ -1965,6 +2206,7 @@ async function refaire() {
     $("phrase").classList.remove("en-pause");
     etat.gestes.entrer = codeGeste(GESTES_ENTRER, f.geste || null);
     if (f.geste === "entrer" && ["naturel", "surprise"].includes(f.geste_valeur)) etat.gesteValeur.entrer = f.geste_valeur;
+    etat.voie.entrer = f.scene ? "raconter" : etat.gestes.entrer ? "amuser" : "auto";
     rendreGestes();
     reglages();
     ouvrirPorte("entrer");
@@ -2001,6 +2243,7 @@ function erreur(message, detail, filmId, historique = true, code = null) {
 const scan = { id: null, coins: [], alertes: [], poignees: [], remplacer: true, porte: "souvenir" };
 // La photo scannée va dans la case du mode qui a lancé le scan (« Le souvenir » d'Entrer, ou la photo de Faire revivre).
 async function rangerScan(photo) {
+  if (scan.porte === "depart") { etat.depart = photo; retenir("souvenir", photo); return ouvrirPorte("depart"); }
   if (scan.porte === "entrer") { etat.image = photo; retenir("souvenir", photo); return ouvrirPorte("entrer"); }
   await ajouterPhotos([photo], scan.remplacer);
   ouvrirPorte("souvenir");
@@ -2249,7 +2492,7 @@ function initRecadrage() {
   });
 }
 
-const FAMILLES_CASE = { image: "souvenir", moi: "visage", corps: "corps" };
+const FAMILLES_CASE = { depart: "souvenir", image: "souvenir", moi: "visage", corps: "corps" };
 
 // Choix d'une photo dans une case simple : écran de recadrage, puis le chemin habituel (aperçu, mémoire, envoi).
 async function choisirRecadree(fichiers, appliquer, famille) {
@@ -2335,16 +2578,17 @@ function bulleDuree(box) {
   const entrer = !!box.closest("#ecran-entrer");
   let cible = null, cle = "";
   if (entrer) {
-    if (!etat.image) { cible = "case-image"; cle = "bulle.photo"; }
+    if (!etat.image) { cible = "rappel-e"; cle = "bulle.photo"; }
     else if (!etat.moi) { cible = "case-moi"; cle = "bulle.visage"; }
-  } else if (!etat.photos.length) { cible = "case-souvenir"; cle = "bulle.photo"; }
+  } else if (!etat.photos.length) { cible = "rappel-s"; cle = "bulle.photo"; }
   const creer = $(entrer ? "creer-entrer" : "creer-souvenir");
   const b = document.createElement("button");
   b.type = "button";
   b.className = "bulle-duree";
   b.textContent = cible ? t(cle) : t("bulle.note", { bouton: creer.textContent });
-  b.onclick = () => { masquerBulle(); if (cible) montrerCase(cible); };
+  b.onclick = () => { masquerBulle(); if (cible === "case-moi") montrer("toi"); if (cible) montrerCase(cible); };
   box.after(b);
+  b.scrollIntoView({ block: "nearest", behavior: "smooth" });   // sinon cachée sous le bouton collé en bas (scroll-margin-bottom)
   b.dataset.minuterie = setTimeout(masquerBulle, 4000);
   if (!cible) pulser(creer, 2000);
 }
@@ -2366,11 +2610,10 @@ function rendrePrep() {
   $("carte-prep").hidden = !prep.bloque;
   $("prep-titre").textContent = t(prep.impossible ? "prep.titre_impossible" : "prep.titre");
   $("prep-aide").textContent = t(prep.impossible ? "prep.aide_impossible" : "prep.aide");
-  document.querySelector(".portes").hidden = prep.bloque;
-  document.querySelector("#ecran-accueil .sous-titre").hidden = prep.bloque;
+  $("depart-bloc").hidden = prep.bloque;                               // étapes 1 et 2 cachées tant que rien n'est prêt
   for (const id of ["porte-souvenir", "creer-souvenir", "creer-entrer"]) $(id).disabled = prep.bloque;
   $("porte-entrer").disabled = prep.bloque || !!prep.entrerManque;     // grisée, avec son explication
-  $("porte-entrer").querySelector(".porte-texte").textContent = t(prep.entrerManque ? "porte.entrer.manque" : "porte.entrer.texte");
+  $("porte-entrer").querySelector(".porte-texte").textContent = t(prep.entrerManque ? "porte.entrer.manque" : "voie.entrer.texte");
 }
 
 async function verifierPrep() {
@@ -2381,8 +2624,29 @@ async function verifierPrep() {
 
 // --- Démarrage ---
 document.querySelectorAll("[data-aller]").forEach((b) => { b.onclick = () => montrer(b.dataset.aller); });
-$("porte-souvenir").onclick = () => ouvrirPorte("souvenir");
-$("porte-entrer").onclick = () => ouvrirPorte("entrer");
+$("porte-souvenir").onclick = () => choisirVoie("souvenir");
+$("porte-entrer").onclick = () => choisirVoie("entrer");
+$("choisir-depart").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.depart = f; }, "souvenir"); e.target.value = ""; };
+$("scanner-d").onclick = () => { scan.porte = "depart"; montrer("scan-conseils"); };
+$("depart-suivant").onclick = () => montrer("choix");
+$("vers-entrer-s").onclick = () => changerVoie("entrer");
+$("vers-souvenir-e").onclick = () => changerVoie("souvenir");
+$("vers-souvenir-t").onclick = () => changerVoie("souvenir");
+// Le visage est obligatoire (comme au lancement, creerEntrer) ; la photo en entier reste facultative
+$("toi-suivant").onclick = () => {
+  if (etat.moi) return ouvrirPorte("entrer");
+  avertir("toi-message", "alerte.pas_de_moi", "case-moi");
+  const c = $("case-moi");
+  c.classList.remove("secoue");
+  void c.offsetWidth;
+  c.classList.add("secoue");
+  pulser(c, 3000);
+};
+// « Changer » sur la photo de l'étape 1 : on retire le souvenir et les deux tuiles reviennent
+$("case-depart").onclick = (e) => { e.preventDefault(); etat.depart = null; etat.photos = []; etat.image = null; majPhotos(); };
+$("case-depart").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("case-depart").click(); } };
+$("case-depart").tabIndex = 0;
+$("case-depart").setAttribute("role", "button");
 
 $("choisir").onchange = (e) => { const f = premiereImage(e.target.files); if (f) choisirRecadree([f], (g) => ajouterPhotos([g], true)); else ajouterPhotos(e.target.files, true); e.target.value = ""; };
 $("choisir-image").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.image = f; }, "souvenir"); e.target.value = ""; };
@@ -2399,7 +2663,9 @@ document.querySelectorAll('input[type="file"]').forEach((champ) => { champ.addEv
 // « × » d'une case remplie : la vide.
 document.querySelectorAll(".case-retirer").forEach((b) => {
   b.onclick = () => {
-    if (b.dataset.case === "souvenir") etat.photos = []; else etat[b.dataset.case] = null;
+    if (b.dataset.case === "souvenir") etat.photos = [];
+    else if (b.dataset.case === "depart") { etat.depart = null; etat.photos = []; etat.image = null; }   // retirer le souvenir de l'étape 1 le retire partout
+    else etat[b.dataset.case] = null;
     majPhotos();
   };
 });
@@ -2423,14 +2689,20 @@ $("scene").addEventListener("input", rendreIdees);
 $("creer-entrer").onclick = creerEntrer;
 $("film-precedent").onclick = () => changerFilm(-1);
 $("film-suivant").onclick = () => changerFilm(1);
-// Accueil : toucher l'appareil photo ou un polaroïd fait briller les deux portes (rien ne reste sans réponse).
-$("scene-accueil").onclick = () => {
-  const portes = document.querySelector(".portes");
-  portes.classList.remove("appel");
-  void portes.offsetWidth;
-  portes.classList.add("appel");
-  portes.scrollIntoView({ block: "center", behavior: "smooth" });
-};
+// Bienvenue (une seule fois par appareil) : un toucher (ou Entrée / Espace) n'importe où, hors barre du haut, mène à l'étape 1.
+function quitterBienvenue() {
+  localStorage.setItem(CLE_BIENVENUE, "1");
+  montrer("accueil");
+}
+document.addEventListener("click", (e) => {
+  if (etat.ecran !== "bienvenue" || e.target.closest(".barre, .menu-langue, .voile, .secours")) return;
+  quitterBienvenue();
+});
+document.addEventListener("keydown", (e) => {
+  if (etat.ecran !== "bienvenue" || (e.key !== "Enter" && e.key !== " ") || e.target.closest(".barre, .menu-langue, .voile, .secours")) return;
+  e.preventDefault();
+  quitterBienvenue();
+});
 $("refaire").onclick = refaire;
 $("vers-accueil").onclick = () => montrer("accueil");
 $("remettre-son").onclick = () => { $("film").muted = false; $("film").volume = 1; majBoutonSon(); };
@@ -2489,6 +2761,9 @@ window.addEventListener("scroll", majPlusBas, { passive: true });
 window.addEventListener("resize", majPlusBas);
 $("plus-bas").onclick = () => window.scrollBy({ top: window.innerHeight * 0.7, behavior: "smooth" });
 // Bouton « Partager » à côté de la langue : code QR pour qu'une autre personne ouvre Stillive (PC ou téléphone)
+// Page en https (version hébergée) : l'avertissement « connexion non sécurisée » ne la concerne pas.
+if (location.protocol === "https:") document.querySelectorAll(".note-http").forEach((e) => e.remove());
+
 let partageSur = null;
 function fermerPartage(parRetour = false) {
   if (partageSur && parRetour !== true) fermerSurcouche(partageSur);   // fermé par un bouton : l'entrée d'historique est retirée
@@ -2600,6 +2875,14 @@ document.addEventListener("visibilitychange", () => {
 history.replaceState({ ecran: "accueil", i: 0 }, "");
 etat.ecran = "accueil";
 document.body.dataset.ecran = "accueil";
+majReperes("accueil");
+// Accueil de bienvenue : une fois par appareil (CLE_BIENVENUE), ou toujours avec ?bienvenue=1 (essais). Jamais sur un lien
+// de film ni pendant une fabrication en cours. Aux ouvertures suivantes : directement l'étape 1.
+{
+  const adr = new URLSearchParams(location.search);
+  const dejaVu = !!localStorage.getItem(CLE_BIENVENUE);
+  if (adr.get("bienvenue") === "1" || (!dejaVu && !adr.get("film") && !localStorage.getItem("stillive.film"))) montrer("bienvenue", "remplacer");
+}
 chargerReserve();
 chargerLangue(langue).then((ok) => {
   if (!ok) return;                                        // textes absents : l'écran de secours est affiché
@@ -2610,6 +2893,17 @@ chargerLangue(langue).then((ok) => {
   verifierPrep();
 });
 // Toutes les 10 s : l'ordinateur a-t-il fini de se préparer ? un film de la galerie a-t-il fini ?
+// Batterie (30/10) : rien en arrière-plan ; une fois l'ordinateur prêt, une vérification par minute suffit.
+let tourPrep = 0;
 prep.minuterie = setInterval(() => {
+  if (document.hidden) return;
+  if (!prep.bloque && ++tourPrep % 6) return;
   verifierPrep();                      // les films en cours sont suivis toutes les 5 s (plus haut)
 }, 10000);
+// Batterie faible (20 % ou moins, hors charge ; navigateurs qui le disent) : les animations décoratives s'arrêtent.
+navigator.getBattery?.().then((b) => {
+  const maj = () => document.body.classList.toggle("econome", !b.charging && b.level <= 0.2);
+  maj();
+  b.addEventListener("levelchange", maj);
+  b.addEventListener("chargingchange", maj);
+}).catch(() => {});

@@ -493,6 +493,8 @@ async function rafraichir() {
 }
 
 $("pc-preparer").onclick = (e) => express(e.currentTarget);
+// Page en https (version hébergée) : l'avertissement « connexion non sécurisée » ne la concerne pas.
+if (location.protocol === "https:") document.querySelectorAll(".note-http").forEach((e) => e.remove());
 $("pc-reessayer").onclick = (e) => lancer("installer", ui.derniere || optionsExpress(ui.d), e.currentTarget);
 $("pc-ref2va").onclick = (e) => {                 // seulement « Entrer dans l'image » : l'analyse et la vidéo sont déjà là
   ui.derniere = { ref2va: true, llm: false };

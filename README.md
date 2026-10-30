@@ -35,27 +35,30 @@ https://github.com/user-attachments/assets/d75e809e-a7ef-4136-a0e9-a6f3f3a2dd01
 ## 📱 Three steps, from the phone
 
 <p align="center">
-  <img src="docs/screens.jpg" alt="Pick a photo, tap an effect, watch it come alive" width="100%">
+  <img src="docs/screens.jpg" alt="Pick a photo, choose what to do, tap: it comes alive" width="100%">
 </p>
 
 ## 👨‍👩‍👧 Made for the whole family
 
 - **Set up once** on the home computer. After that, everyone just uses their phone.
 - **No app to install**: scan the QR code once, and Stillive opens in the phone's browser.
-- **Three steps**: pick a photo (or scan a paper print with the phone camera), tap an effect, watch your clip a few minutes later.
+- **Three steps, one screen each**: pick a photo (or scan a paper print with the phone camera), choose what to do, pick a way (Automatic, Just for fun or You tell it). Your clip is ready a few minutes later.
 - **Big, friendly buttons**, playful waiting screen, in 10 languages (English, Chinese, Spanish, Arabic, Portuguese, Indonesian, French, Japanese, Russian, German).
 - **Private by design**: everything runs on your own computer, nothing leaves your home.
 
 ## 🎬 What you can do
 
 **Bring a memory back to life**: the AI looks at the photo, imagines a natural moment and animates it.
-- *Bring my photo to life*: "Natural" or "Surprise me!".
-- *Just for fun*: Dance, Change era (pirates, Versailles, the 80s… or any year), Teleportation (the Moon, Times Square, northern lights… or any place), Change season, Cartoon or claymation, Back to color, Living portrait (seamless loop), Tell your story (write what happens).
+- *Automatic*: just before it starts, choose "True to my photo" or "Surprise me!".
+- *Just for fun*: Dance, Change era (pirates, Versailles, the 80s… or any year), Teleportation (the Moon, Times Square, northern lights… or any place), Change season, Cartoon or claymation, Back to color, Living portrait (seamless loop).
+- *You tell it*: write what happens, the photo does it.
 
 **Step into a memory**: take a selfie and appear inside any photo, for example your parents' childhood picture.
-- Automatic, Selfie with them, Balloon arrival, Dance with them, Superhero entrance, Magic portal, Reunion, Out of the scenery, Tarzan vine, Electric scooter, Glitch appearance, Hug your younger self.
+- *Automatic*: "I just walk in" or "Surprise entrance!".
+- *Just for fun*: Selfie with them, Balloon arrival, Dance with them, Superhero entrance, Magic portal, Reunion, Out of the scenery, Tarzan vine, Electric scooter, Glitch appearance, Hug your younger self.
+- *You tell it*: write how you arrive.
 
-Clips are short (5 seconds) or long (10 seconds), with an optional little note at the end. Each clip comes in a vertical and a horizontal version. "My memories" keeps all your clips; download any of them in one tap.
+Clips are short (5 seconds) or long (10 seconds). Each clip comes in a vertical and a horizontal version. "My memories" keeps all your clips; download any of them in one tap.
 
 ## 🖥️ What you need
 
@@ -78,7 +81,7 @@ Clips are short (5 seconds) or long (10 seconds), with an optional little note a
 ## ☕ Everyday use
 
 - Start: the "Stillive" shortcut on the desktop (or `start_stillive.bat` in the install folder). Stop: `stop_stillive.bat`.
-- On the phone: open the saved page, pick a photo (or scan a paper photo), choose an effect, wait a few minutes, watch and download.
+- On the phone: open the saved page, pick a photo (or scan a paper photo), choose what to do, pick a way, wait a few minutes, watch and download.
 - Update: download the new version and run the installer again. Your settings, models and clips are kept.
 - Uninstall: on the computer, open the preparation page, section "Uninstall Stillive", and choose what to remove. It only removes what Stillive installed itself, never your own models.
 
