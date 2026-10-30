@@ -735,7 +735,8 @@ function majPhotos() {
   $("toi-message").hidden = true;
   majCase("case-souvenir", etat.photos[0] || null);
   majCase("case-image", etat.image);
-  for (const [id, f] of [["rappel-s-img", etat.photos[0]], ["rappel-e-img", etat.image]]) {   // rappel compact dans les écrans d'options
+  for (const [id, f] of [["rappel-s-img", etat.photos[0]], ["rappel-e-img", etat.image],
+                         ["rappel-moi-img", etat.moi], ["rappel-corps-img", etat.corps]]) {   // rappel compact dans les écrans d'options
     const img = $(id);
     img.hidden = !f;
     if (f) img.src = adresse(f);
@@ -2629,6 +2630,10 @@ $("porte-entrer").onclick = () => choisirVoie("entrer");
 $("choisir-depart").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.depart = f; }, "souvenir"); e.target.value = ""; };
 $("scanner-d").onclick = () => { scan.porte = "depart"; montrer("scan-conseils"); };
 $("depart-suivant").onclick = () => montrer("choix");
+// Entrer, étape 4 : « Changer » le souvenir ouvre un panneau par-dessus l'étape (photo de l'appareil, scan, annuler)
+$("rappel-e-changer").onclick = () => { $("feuille-souvenir").hidden = false; };
+document.querySelectorAll("[data-fermer-souvenir]").forEach((el) => el.addEventListener("click", () => { $("feuille-souvenir").hidden = true; }));
+$("scanner-e2").onclick = () => { $("feuille-souvenir").hidden = true; scan.porte = "entrer"; montrer("scan-conseils"); };
 $("vers-entrer-s").onclick = () => changerVoie("entrer");
 $("vers-souvenir-e").onclick = () => changerVoie("souvenir");
 $("vers-souvenir-t").onclick = () => changerVoie("souvenir");

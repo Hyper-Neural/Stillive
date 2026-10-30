@@ -968,3 +968,19 @@ body.econome :is(svg[class^="anim-"] *, .logo .oeil, .plus-bas svg, .invite, .fl
 .lien-voie:active { background: rgba(43, 29, 26, .06); border-radius: 12px; }
 /* 30/10 : titre des pages d'options retiré à l'écran (place pour la photo) ; gardé pour les lecteurs d'écran seulement */
 .bandeau-mode { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; box-shadow: none; }
+/* 30/10 : Entrer, rappel « souvenir + toi » : le souvenir, un gros « + », les photos de la personne (un seul bouton vers l'étape 3) */
+#rappel-e { gap: 10px; }
+#rappel-e .polaroid-grand img { max-width: calc((min(100vw, 480px) - 36px) * .44); }
+.rappel-plus { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--soleil); color: var(--encre);
+  border: 2.5px solid var(--encre); box-shadow: 0 3px 0 var(--encre); }
+.rappel-plus svg { width: 24px; height: 24px; }
+.rappel-toi { position: relative; flex: none; padding: 0 0 22px; background: none; border: 0; cursor: pointer; }
+.rt-photos { display: flex; align-items: flex-end; }
+.rt-photos img { display: block; height: min(15dvh, 110px); width: auto; max-width: 74px; object-fit: cover; background: #fff; padding: 4px;
+  border: 1px solid var(--bord); box-shadow: 0 3px 0 rgba(43, 29, 26, .15); transform: rotate(-4deg); }
+.rt-photos img + img { margin-left: -16px; transform: rotate(5deg); }
+.rappel-toi .rt-changer { right: 50%; bottom: 0; transform: translateX(50%); min-height: 34px; padding: 0 11px; font-size: 14px; }
+.rappel-toi:active .rt-changer { transform: translateX(50%) translateY(3px); box-shadow: 0 0 0 var(--encre); }
+/* 30/10 : panneau « Changer le souvenir » de l'étape 4 d'Entrer */
+#feuille-souvenir .tuile { min-height: 170px; }
+.feuille-annuler { display: block; margin: 16px auto 0; font-size: 16px; }
