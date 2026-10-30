@@ -4,6 +4,11 @@
 
 Stillive turns a single photo (a family picture, a vintage print, a phone snapshot) into a short animated clip with music and ambient sound, ready to share. It is made for everyone, from grandparents to kids: no AI knowledge, no settings, nothing to learn.
 
+
+
+https://github.com/user-attachments/assets/d75e809e-a7ef-4136-a0e9-a6f3f3a2dd01
+
+
 **▶ [Watch the 2-minute demo](demo/stillive_demo.mp4)** (English subtitles: [demo/stillive_demo.en.srt](demo/stillive_demo.en.srt))
 
 ## Made for the whole family
