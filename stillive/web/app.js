@@ -2633,6 +2633,7 @@ $("depart-suivant").onclick = () => montrer("choix");
 // Entrer, étape 4 : « Changer » le souvenir ouvre un panneau par-dessus l'étape (photo de l'appareil, scan, annuler)
 $("rappel-e-changer").onclick = () => { $("feuille-souvenir").hidden = false; };
 document.querySelectorAll("[data-fermer-souvenir]").forEach((el) => el.addEventListener("click", () => { $("feuille-souvenir").hidden = true; }));
+$("feuille-souvenir").querySelector(".reserve").addEventListener("click", (e) => { if (e.target.closest(".reprendre")) $("feuille-souvenir").hidden = true; });
 $("scanner-e2").onclick = () => { $("feuille-souvenir").hidden = true; scan.porte = "entrer"; montrer("scan-conseils"); };
 $("vers-entrer-s").onclick = () => changerVoie("entrer");
 $("vers-souvenir-e").onclick = () => changerVoie("souvenir");
