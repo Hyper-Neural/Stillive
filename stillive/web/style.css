@@ -237,7 +237,7 @@ label.gros-bouton { cursor: pointer; }
 .case.pleine { border: 1px solid var(--bord); padding: 8px 8px 30px; background: var(--papier); transform: rotate(-1deg); box-shadow: 0 3px 0 var(--bord); }
 .case-petite { min-height: 110px; }
 .case.pleine img { max-height: 38vh; width: auto; max-width: 100%; object-fit: contain; }
-/* Bouton de création toujours à portée de pouce, comme chez Higgsfield */
+/* Bouton de création toujours à portée de pouce */
 #creer-souvenir, #creer-entrer { position: sticky; bottom: calc(12px + var(--clavier, 0px)); z-index: 5; box-shadow: 0 6px 18px rgba(43, 29, 26, .25); }
 .case-vide { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; font: 600 22px/1.1 var(--main); }
 .case-vide svg { width: 44px; height: 44px; color: var(--corail-fonce); }

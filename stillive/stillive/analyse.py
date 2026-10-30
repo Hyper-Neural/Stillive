@@ -338,7 +338,7 @@ CAMERA_MOVES = {
     "orbit": "The camera orbits around {focus} with small amplitude at a smooth, natural speed, revealing the scene from a slightly different angle.",
     "rise": "The camera rises smoothly with small amplitude, craning up and tilting gently down toward {focus}.",
     "bullet_time": "Time almost stands still: everyone is nearly frozen and only fine details (hair, light, dust, steam) drift, while the camera glides in a slow small arc around {focus}.",
-    # Noms Higgsfield. Les anciennes clés (push_in, rise, truck_right, truck_left, static) restent acceptées.
+    # Noms usuels de cinéma. Les anciennes clés (push_in, rise, truck_right, truck_left, static) restent acceptées.
     "dolly_in": "The camera dollies in with small amplitude at a smooth, natural speed toward {focus}.",
     "crane_up": "The camera cranes up with small amplitude at a smooth, natural speed, rising above the scene and tilting gently down toward {focus}.",
     "crash_zoom": "The camera zooms in toward {focus} in one quick, smooth push with small amplitude, then holds steady.",
@@ -358,7 +358,7 @@ CAMERA_MOVES = {
               "the era and the light of the photo, with nothing surprising added. The people stay in the center and get "
               "smaller as the view widens."),
 }
-# Les dix mouvements proposés à l'utilisateur (noms Higgsfield). « auto » laisse camera_for choisir.
+# Les dix mouvements proposés à l'utilisateur (noms usuels de cinéma). « auto » laisse camera_for choisir.
 MOUVEMENTS = ["dolly_in", "pull_out", "orbit", "crane_up", "crash_zoom", "parallax", "bullet_time",
               "handheld", "focus_change", "arc"]
 
