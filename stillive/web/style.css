@@ -324,7 +324,7 @@ button:focus-visible, label:focus-visible, [role="button"]:focus-visible, summar
 .pastille small { font-size: 12px; opacity: .85; margin-left: 6px; }
 .bloc-qr { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 .qr { background: #fff; padding: 10px; border: 1px solid var(--bord); box-shadow: 0 3px 0 var(--bord); line-height: 0; transform: rotate(-1deg); }
-.qr svg { display: block; width: min(72vw, 300px); height: auto; shape-rendering: crispEdges; }
+.qr svg { display: block; width: min(72vw, 300px, 38vh); height: auto; shape-rendering: crispEdges; }
 .adresse-pc { font: 600 28px var(--main); color: var(--encre); word-break: break-all; margin: 0; user-select: all; }
 .aide-tel { align-self: stretch; text-align: left; }
 #erreur-detail-texte { overflow-wrap: anywhere; }
@@ -413,9 +413,10 @@ a.logo { color: inherit; text-decoration: none; min-height: 44px; }
 .tout-effacer { font: 500 14px var(--texte); color: var(--encre); background: none; border: 1.5px solid var(--encre); border-radius: 22px; padding: 0 14px; min-height: 44px; cursor: pointer; }
 
 /* Boîte de confirmation dans le style de l'app */
-.voile { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(43, 29, 26, .55); }
+/* Petits écrans : la fenêtre défile au lieu de déborder (margin auto centre sans couper le haut ni le bas). */
+.voile { position: fixed; inset: 0; z-index: 50; display: flex; overflow-y: auto; overscroll-behavior: contain; padding: 20px; background: rgba(43, 29, 26, .55); }
 .voile[hidden] { display: none; }
-.boite { width: min(100%, 420px); background: var(--papier); border: 1px solid var(--bord); box-shadow: 0 4px 0 var(--bord); padding: 22px 20px 18px; transform: rotate(-1deg); display: flex; flex-direction: column; gap: 16px; }
+.boite { margin: auto; flex: none; width: min(100%, 420px); background: var(--papier); border: 1px solid var(--bord); box-shadow: 0 4px 0 var(--bord); padding: 22px 20px 18px; transform: rotate(-1deg); display: flex; flex-direction: column; gap: 16px; }
 .boite p { margin: 0; font-size: 17px; line-height: 1.4; }
 .boite-boutons { display: flex; gap: 10px; }
 .boite-boutons button { flex: 1; margin-top: 0; }
@@ -921,6 +922,15 @@ body.econome :is(svg[class^="anim-"] *, .logo .oeil, .plus-bas svg, .invite, .fl
 .note-http { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 4px; padding: 10px 12px; border: 2px solid var(--soleil); border-radius: 14px;
   background: #FFF6D9; font: 500 14px/1.35 var(--texte); color: var(--encre); text-align: left; }
 .note-http::before { content: "🔒"; flex: none; font-size: 18px; line-height: 1.2; }
+.boite p.note-http { font-size: 14px; }
+/* Fenêtre du QR : « Fermer » reste visible en bas même quand la fenêtre défile (petits écrans) */
+#partage-fermer { position: sticky; bottom: 0; background: var(--papier); box-shadow: 0 -10px 12px var(--papier); }
+@media (max-height: 720px) {
+  .boite { gap: 10px; padding: 16px 16px 14px; }
+  .boite p { font-size: 15px; line-height: 1.3; }
+  .boite p.note-http { font-size: 13px; padding: 8px 10px; margin: 2px 0; }
+  .qr svg { width: min(72vw, 300px, 32vh); }
+}
 [dir="rtl"] .note-http { text-align: right; }
 
 /* Changer de mode (Faire revivre / Entrer) : mini-image du mode, « Changer pour » en petit, le mode en gras.
