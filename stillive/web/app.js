@@ -2,7 +2,8 @@
 // Deux portes : « Faire revivre un souvenir » (une photo + un effet, ou plusieurs photos pour un film)
 // et « Entrer dans un souvenir » (une photo + un selfie).
 // Fusionné le 28/10 : effets et gestes forment une seule grille de cartes, plus de mouvement de caméra (l'IA le choisit).
-const LANGUES = ["fr", "en"];       // ajouter « es »… : un fichier par langue suffit
+const LANGUES = ["en", "zh", "es", "ar", "pt", "id", "fr", "ja", "ru", "de"];       // un fichier web/i18n/<code>.json par langue (l'anglais sert de base)
+const NOMS_LANGUES = { en: "English", zh: "中文", es: "Español", ar: "العربية", pt: "Português", id: "Bahasa Indonesia", fr: "Français", ja: "日本語", ru: "Русский", de: "Deutsch" };
 // Porte Faire revivre : UNE grille de cartes (dessin #g-<cle>, titre geste.<cle> ou `tit`, phrase <titre>_d).
 // Chaque carte : recette envoyée, geste éventuel (= analyse.GESTES). « Automatique » est choisi par défaut ;
 // les cartes « large » prennent toute la ligne, les autres vont par lignes pleines de 2.
@@ -13,7 +14,7 @@ const GESTES_SOUVENIR = [
   { cle: "teleportation", recette: "revit", geste: "teleportation" }, { cle: "saison", recette: "revit", geste: "saison" },
   { cle: "dessin_anime", recette: "revit", geste: "dessin_anime" }, { cle: "temps", recette: "temps", tit: "effet.temps" },
   { cle: "boucle", recette: "boucle", tit: "effet.boucle", large: true },
-  { cle: "scene", recette: "revit", tit: "effet.scene", large: true },
+  // « À toi de raconter » n'est plus une carte (29/10) : un champ libre toujours visible, juste après Automatique.
 ];
 const carteSouvenir = () => GESTES_SOUVENIR.find((c) => c.cle === etat.choix) || GESTES_SOUVENIR[0];
 // Porte Entrer : « calin_enfant » demande une photo de soi enfant comme souvenir.
@@ -28,10 +29,31 @@ const GESTES_ENTRER = [
 ];
 // Précision envoyée en « geste_valeur » (= analyse.GESTES_VALEUR) : année, lieu, ou un choix parmi deux.
 const PRECISIONS = {
-  epoque: { type: "annee", presets: ["aujourdhui", "prehistoire", "pharaons", "rome", "vikings", "moyen_age", "versailles", "pirates", "far_west", "annees_folles", "annees_50", "disco", "annees_80", "futur"] }, teleportation: { type: "lieu", presets: ["paris", "plage", "new_york", "venise", "aurores", "safari", "grand_canyon", "japon", "lune", "dinosaures", "ocean", "chateau", "nuages", "bonbons"] },
+  epoque: { type: "annee", presets: ["aujourdhui", "prehistoire", "pharaons", "rome", "vikings", "moyen_age", "versailles", "pirates", "far_west", "annees_folles", "annees_50", "hippie", "disco", "annees_80", "futur"] }, teleportation: { type: "lieu", presets: ["paris", "plage", "new_york", "venise", "aurores", "safari", "grand_canyon", "japon", "taj_mahal", "lune", "dinosaures", "ocean", "chateau", "nuages", "bonbons"] },
   danser: { type: "danse", presets: ["disco", "hip_hop", "rock", "salsa", "valse", "tango", "bollywood", "samba", "ballet", "country", "irlandaise", "hula"] },
   animer: { choix: ["naturel", "surprise"] }, age: { choix: ["vieillir", "rajeunir"] }, dessin_anime: { choix: ["dessin", "pate"] },
 };
+// Couleurs des médaillons des pré-réglages (époques, lieux, danses), une par position
+const TEINTES_MEDAILLON = ["#8E44AD", "#2C6E8F", "#C0392B", "#E67E22", "#7D5BA6", "#A93246", "#D4A017", "#27AE60", "#E06C9F", "#B9770E", "#1E8449", "#16A3B8", "#5D6D7E", "#D35400"];
+// Icône et couleur des médaillons des choix à deux (style, sens) : leurs textes traduits n'ont pas d'emoji
+// (pâte à modeler : pas d'emoji juste, une petite icône dessinée : boudins de pâte colorés et une boule marquée du doigt)
+const ICONE_PATE = '<svg viewBox="0 0 48 48" width="54" height="54"><g stroke="#2B1E16" stroke-width="2.2" stroke-linejoin="round">'
+  + '<rect x="5" y="27" width="30" height="10" rx="5" fill="#F4D03F"/><rect x="9" y="17" width="30" height="10" rx="5" fill="#E74C3C"/>'
+  + '<path d="M28 36c0-6 4-10 9-10s8 3 8 8-3 8-8 8-9-1-9-6z" fill="#3498DB"/></g>'
+  + '<path d="M33 31c2-1.5 5-1.5 7 0M32.5 35c2.5-1.5 6-1.5 8 0" fill="none" stroke="#1B4F72" stroke-width="1.6" stroke-linecap="round"/>'
+  + '<path d="M13 20.5h8M10 30.5h7" stroke="#fff" stroke-opacity=".55" stroke-width="2.2" stroke-linecap="round"/></svg>';
+// (dessin animé : visage de manga, mèches en pointes, très grands yeux brillants à reflets, petite bouche, joues rosées)
+const ICONE_DESSIN = '<svg viewBox="0 0 48 48" width="54" height="54"><g stroke="#1B1340" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">'
+  + '<path d="M7 27C5 13 14 3 24 3s19 10 17 24l-2 9-3-11H12L9 36z" fill="#2E3A87"/>'
+  + '<path d="M11.5 22c0 11 5.5 19.5 12.5 21.5 7-2 12.5-10.5 12.5-21.5z" fill="#FDE3CF"/>'
+  + '<path d="M8 21C8 10 15 4.5 24 4.5S40 10 40 21l-3-3.5-2.5 4.5-3-6-3 5-3.5-6.5-3.5 6.5-3-5-3 6-2.5-4.5z" fill="#2E3A87"/>'
+  + '<ellipse cx="17.6" cy="30" rx="4.5" ry="5.8" fill="#5B3FC4"/><ellipse cx="30.4" cy="30" rx="4.5" ry="5.8" fill="#5B3FC4"/>'
+  + '<path d="M13.2 27c2-3.2 6.5-3.6 8.8-1.2M26 25.8c2.3-2.4 6.8-2 8.8 1.2M13.2 27l-1.8-1.3M34.8 27l1.8-1.3" fill="none" stroke-width="2.6"/>'
+  + '<path d="M22.6 38.6c.9.7 1.9.7 2.8 0" fill="none" stroke-width="1.6"/></g>'
+  + '<circle cx="15.9" cy="28" r="2.1" fill="#fff"/><circle cx="28.7" cy="28" r="2.1" fill="#fff"/>'
+  + '<circle cx="19.2" cy="32.6" r="1" fill="#fff"/><circle cx="32" cy="32.6" r="1" fill="#fff"/>'
+  + '<path d="M12.8 37l1.2-1.4M15.1 37.2l1.2-1.4M31.7 37.2l1.2-1.4M34 37l1.2-1.4" stroke="#F1948A" stroke-width="1.3" stroke-linecap="round"/></svg>';
+const ICONES_CHOIX = { dessin: [ICONE_DESSIN, "#E06C9F"], pate: [ICONE_PATE, "#16A3B8"], vieillir: ["👴", "#7D5BA6"], rajeunir: ["👶", "#E06C9F"] };
 const codeGeste = (liste, code) => (liste.some((g) => g.code === code) ? code : null);   // ancien geste retiré : Automatique
 const EMOJI_TON = { drole: "😄", emouvant: "🥹", magique: "✨" };
 const DUREES = [5, 10];             // Court, Long (secondes d'animation ; seulement 5 ou 10, choix du 29/10)
@@ -40,9 +62,34 @@ const COULEURS = ["auto", "oui", "non"];
 const AMBIANCES = ["auto", "tendre", "joyeuse", "nostalgique"];  // film à plusieurs photos
 const MINUTES_PAR_PHOTO = 4;       // mesuré : environ 4 min par photo sur une RTX 5080
 
+// Stockage du téléphone protégé : s'il est refusé (cookies bloqués, navigateur intégré, quota), les valeurs vivent en
+// mémoire pour la visite au lieu de faire planter la page (audit 30/10).
+(function protegerStockage() {
+  let reel = null;
+  try { reel = window.localStorage; reel.getItem("stillive.test"); } catch { reel = null; }
+  const memoire = new Map();
+  const sur = {
+    getItem(k) { if (memoire.has(k)) return memoire.get(k); try { const v = reel ? reel.getItem(k) : null; return v === undefined ? null : v; } catch { return null; } },
+    setItem(k, v) { memoire.set(k, String(v)); try { if (reel) reel.setItem(k, String(v)); } catch { /* plein ou refusé : la mémoire suffit */ } },
+    removeItem(k) { memoire.delete(k); try { if (reel) reel.removeItem(k); } catch { /* refusé */ } },
+  };
+  try { Object.defineProperty(window, "localStorage", { value: sur, configurable: true }); } catch { /* repli impossible : tant pis */ }
+})();
+
 let textes = {};
-let langue = localStorage.getItem("stillive.langue") || "en";   // anglais par défaut (équipe Comfy américaine), le français reste au choix
-if (!LANGUES.includes(langue)) langue = "en";
+// Langue : choix MANUEL mémorisé (« stillive.langue.choisie »), sinon langue du téléphone (navigator.languages), sinon anglais.
+// L'ancienne clé « stillive.langue » était écrite automatiquement : ignorée.
+function langueDetectee() {
+  const choisie = localStorage.getItem("stillive.langue.choisie");
+  if (LANGUES.includes(choisie)) return choisie;
+  for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language])) {
+    let c = String(l || "").toLowerCase().split("-")[0];
+    if (c === "ms" || c === "in") c = "id";
+    if (LANGUES.includes(c)) return c;
+  }
+  return "en";
+}
+let langue = langueDetectee();
 const etat = {
   porte: localStorage.getItem("stillive.porte") === "entrer" ? "entrer" : "souvenir",
   photos: [], image: null, moi: null, corps: null,
@@ -110,14 +157,18 @@ async function lireLangue(code) {
     try {
       const r = await fetch(`/web/i18n/${code}.json`);
       if (r.ok) return await r.json();
+      if (r.status === 404) return null;                  // fichier de langue pas (encore) écrit : inutile de réessayer
     } catch { /* réseau pas encore stable : nouvel essai */ }
     await new Promise((ok) => setTimeout(ok, 800));
   }
   return null;
 }
 
-async function chargerLangue(code) {
-  const lus = await lireLangue(code);
+async function chargerLangue(code, manuel = false) {
+  // L'anglais sert de base : une clé absente ou un fichier de langue manquant affiche l'anglais.
+  const base = Object.keys(textes).length && langue === "en" ? textes : await lireLangue("en");
+  const propres = code === "en" ? {} : await lireLangue(code);
+  const lus = base || propres ? { ...(base || {}), ...(propres || {}) } : null;
   if (!lus) {
     if (!Object.keys(textes).length) $("secours").hidden = false;   // première langue : page vide sinon
     return false;
@@ -126,7 +177,8 @@ async function chargerLangue(code) {
   textes = lus;
   langue = code;
   document.documentElement.lang = code;
-  localStorage.setItem("stillive.langue", code);
+  document.documentElement.dir = code === "ar" ? "rtl" : "ltr";
+  if (manuel) localStorage.setItem("stillive.langue.choisie", code);   // seuls les choix manuels sont gardés
   $("langue").textContent = code.toUpperCase();
   document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("[data-t-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.tPlaceholder); });
@@ -155,12 +207,17 @@ function montrer(ecran, historique = true) {
   if (etat.cleRequise) { ecran = "cle"; historique = "remplacer"; }   // sans le code, un seul écran possible
   const profondeur = history.state?.i || 0;
   if (ecran === "accueil" && historique === true) {
-    if (profondeur > 0 && etat.ecran !== "accueil") { history.go(-profondeur); return; }   // onpopstate affiche l'accueil
+    if (profondeur > 0 && etat.ecran !== "accueil") {
+      if (popIgnores > 0) { setTimeout(() => montrer(ecran, historique), 60); return; }   // une surcouche vient de se fermer : on attend son retour d'historique
+      history.go(-profondeur); return;   // onpopstate affiche l'accueil
+    }
     historique = "remplacer";
   }
   if (ecran !== "attente") arreterAttente();
+  if (ecran !== "scan-cadre") scan.jeton = (scan.jeton || 0) + 1;   // un scan en cours est abandonné : sa photo ne rouvre plus la porte (audit 30/10)
   if (ecran !== "resultat") viderFilm();
   etat.ecran = ecran;
+  masquerBandeau(); masquerBulle();
   document.body.dataset.ecran = ecran;        // la barre du haut montre « Retour » et « Accueil » hors de l'accueil
   placerFrise(ecran);
   setTimeout(majPlusBas, 600);                // après le défilement vers le haut
@@ -182,13 +239,35 @@ function placerFrise(ecran) {
   if (ecran === "accueil") ancreFrise.after(frise);
   else if (FRISE_ECRANS.includes(ecran)) $(`ecran-${ecran}`).append(frise);
 }
-// Un film en cours change d'état pendant qu'on navigue : la frise se met à jour seule (l'attente a son propre suivi).
+// Un film en cours change d'état pendant qu'on navigue : sondage léger toutes les 5 s, sur TOUS les écrans,
+// seulement s'il y a un film en cours (l'attente a son propre suivi). Il continue page cachée : c'est lui qui
+// déclenche la notification « prêt » (29/10).
 setInterval(() => {
-  if (document.hidden || etat.ecran === "attente" || !galerie.films.some(enCours)) return;
-  if (etat.ecran === "accueil" || etat.ecran === "galerie" || FRISE_ECRANS.includes(etat.ecran)) chargerGalerie();
-}, 8000);
+  if (etat.ecran === "attente" || !galerie.films.some(enCours)) return;
+  chargerGalerie();
+}, 5000);
+
+// Surcouches (recadrage, confirmation, QR de partage, menu des langues) : elles ajoutent une entrée d'historique, le
+// Retour du téléphone les ferme d'abord, sans changer d'écran derrière. Fermées autrement, elles retirent leur entrée.
+const surcouches = [];                  // { dom } : la plus récente en dernier ; dom() ferme seulement l'affichage
+let popIgnores = 0;                     // retours d'historique voulus par une fermeture, à ne pas traiter comme un Retour
+function ouvrirSurcouche(dom) {
+  const s = { dom };
+  surcouches.push(s);
+  history.pushState({ ...(history.state || {}), sur: true }, "");
+  return s;
+}
+function fermerSurcouche(s) {
+  const i = surcouches.indexOf(s);
+  if (i < 0) return;
+  surcouches.splice(i, 1);
+  popIgnores++;
+  history.back();
+}
 
 window.onpopstate = (e) => {
+  if (popIgnores > 0) { popIgnores--; return; }
+  if (surcouches.length) { surcouches.pop().dom(); return; }
   const ecran = e.state?.ecran || "accueil";
   if (ecran === "attente" && etat.film) return commencerAttente(false);
   if (ecran === "resultat" && etat.resultat) return resultat(etat.resultat, false);
@@ -203,7 +282,8 @@ function ouvrirPorte(porte) {
   montrer(porte);
 }
 
-function avertir(id, cle) {
+function avertir(id, cle, cible) {
+  if (cible && $(cible)) return bandeauAlerte(cle, cible);     // bandeau très visible qui mène à la case concernée
   const p = $(id);
   p.textContent = t(cle);
   p.hidden = false;
@@ -226,10 +306,6 @@ function pastilles(conteneur, cles, prefixe, champ) {
 }
 
 function rendreAvance() {
-  for (const s of ["s", "e"]) {
-    pastilles(`looks-${s}`, LOOKS, "look", "look");
-    pastilles(`couleurs-${s}`, COULEURS, "couleurs", "couleurs");
-  }
   pastilles("ambiances", AMBIANCES, "ambiance", "ambiance");
 }
 
@@ -262,6 +338,8 @@ function majCase(id, fichier) {
   c.querySelector(".case-change").hidden = !fichier;
   c.classList.toggle("pleine", !!fichier);
   c.parentElement.querySelector(".case-retirer").hidden = !fichier;     // le « × » n'apparaît que sur une case remplie
+  const rc = c.parentElement.querySelector(".case-recadrer");
+  if (rc) rc.hidden = !fichier;
 }
 
 // Une photo : son type commence par « image/ », ou (certains téléphones Android) il est vide et le nom
@@ -288,8 +366,8 @@ function choisirUne(fichiers, appliquer, famille) {
 }
 
 // Avant l'envoi : une photo de plus de 2048 px de côté est réduite (JPEG 0,92, orientation appliquée par le
-// navigateur). En dessous, ou si le navigateur ne sait pas la lire (HEIC sur Chrome…), l'original part tel quel
-// et le serveur s'en occupe.
+// navigateur), et un format hors JPEG/PNG/WebP est réencodé en JPEG. Sinon, ou si le navigateur ne sait pas la lire
+// (HEIC sur Chrome…), l'original part tel quel et le serveur donne le message clair.
 const COTE_MAX = 2048;
 const reduites = new WeakMap();
 async function reduire(fichier) {
@@ -298,8 +376,11 @@ async function reduire(fichier) {
   let img = null;
   try {
     img = await createImageBitmap(fichier);
-    const k = COTE_MAX / Math.max(img.width, img.height);
-    if (k < 1) {
+    // Le serveur n'accepte que JPEG, PNG et WebP : tout autre format que le navigateur sait lire (jfif, gif, bmp, avif,
+    // heic, tiff...) est réencodé en JPEG, même si la photo est petite.
+    const typeOk = fichier.type ? /^image\/(jpeg|png|webp)$/.test(fichier.type) : /\.(jpe?g|png|webp)$/i.test(fichier.name || "");
+    const k = Math.min(1, COTE_MAX / Math.max(img.width, img.height));
+    if (k < 1 || !typeOk) {
       const c = document.createElement("canvas");
       c.width = Math.max(1, Math.round(img.width * k));
       c.height = Math.max(1, Math.round(img.height * k));
@@ -316,6 +397,9 @@ async function reduire(fichier) {
 // Nom de fichier accepté par le serveur (il juge sur l'extension) : un fichier sans extension d'image reçoit « .jpg ».
 function nomEnvoi(f, repli) {
   const nom = f.name || repli;
+  // le serveur n'accepte que .jpg .jpeg .png .webp : l'extension suit le vrai format (une .jfif est un JPEG)
+  const ext = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" }[f.type];
+  if (ext && !/\.(jpe?g|png|webp)$/i.test(nom)) return nom.replace(/\.[^.]*$/, "") + ext;
   return EXTENSION_IMAGE.test(nom) ? nom : `${nom}.jpg`;
 }
 
@@ -532,16 +616,15 @@ function majPhotos() {
   const multi = n > 1;
   $("bloc-simple").hidden = multi;
   $("bloc-film").hidden = !multi;
-  $("avance-simple").hidden = multi;
   $("creer-souvenir").textContent = t(multi ? "film.creer" : "souvenir.creer");
   majCase("case-souvenir", etat.photos[0] || null);
   majCase("case-image", etat.image);
   majCase("case-moi", etat.moi);
   majCase("case-corps", etat.corps);
-  $("mot-bloc-s").hidden = multi;                 // le petit mot ne concerne qu'un film à une photo
   if (etat.idees.pour && etat.idees.pour !== etat.photos[0]) viderIdees(false);   // autre photo : plus d'idées
   $("souvenir-message").hidden = true;
   $("entrer-message").hidden = true;
+  masquerBandeau();
   if (multi) majGrille();
 }
 
@@ -576,12 +659,6 @@ function majGrille() {
     }
     grille.append(v);
   });
-  const plus = document.createElement("label");
-  plus.className = "vignette ajout";
-  plus.htmlFor = "choisir-plus";
-  plus.textContent = `+ ${t("film.ajouter")}`;
-  rendreAccessible(plus);
-  grille.append(plus);
 }
 
 // --- Durée : deux boutons (Court, Long), le choix est gardé dans le téléphone ---
@@ -594,7 +671,7 @@ function majDuree() {
       b.className = "pastille";
       b.textContent = t(`duree.${n}`);
       b.setAttribute("aria-pressed", etat.secondes === n);
-      b.onclick = () => { etat.secondes = n; localStorage.setItem("stillive.secondes", n); majDuree(); };
+      b.onclick = () => { etat.secondes = n; localStorage.setItem("stillive.secondes", n); majDuree(); bulleDuree(box); };
       box.append(b);
     }
   });
@@ -602,13 +679,15 @@ function majDuree() {
 
 // --- Cartes de la porte Faire revivre (effets et gestes en une seule grille) et de la porte Entrer ---
 // La précision d'un geste (année, lieu, deux choix) est un seul élément, glissé dans la grille juste sous la
-// ligne de la carte choisie ; le texte libre « À toi de raconter » suit la grille (en dernier).
+// ligne de la carte choisie ; le texte libre suit le bloc Automatique (29/10), même habillage dans les deux portes.
+const blocRaconter = { souvenir: $("bloc-scene"), entrer: $("bloc-phrase") };   // gardés : la grille est vidée à chaque rendu
 const boxPrecision = document.createElement("div");
 boxPrecision.className = "geste-precision";
 boxPrecision.id = "geste-precision";
 boxPrecision.hidden = true;
 
 function rendreGestes() {
+  majTexteSeul();
   $("aide-calin").hidden = etat.gestes.entrer !== "calin_enfant";
   for (const [porte, id, liste] of [["souvenir", "gestes-s", GESTES_SOUVENIR], ["entrer", "gestes-e", GESTES_ENTRER]]) {
     const box = $(id);
@@ -632,34 +711,42 @@ function rendreGestes() {
         $("souvenir-message").hidden = true;
         rendreGestes();
         if (etat.gestes.entrer === "calin_enfant") $("aide-calin").scrollIntoView({ block: "nearest", behavior: "smooth" });
-        if (porte === "souvenir") {
-          const cible = PRECISIONS[carteSouvenir().geste] ? boxPrecision : etat.choix === "scene" ? $("bloc-scene") : null;
-          if (cible) cible.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        if (porte === "souvenir" && etat.choix !== "auto" && PRECISIONS[carteSouvenir().geste]) {
+          boxPrecision.scrollIntoView({ block: "nearest", behavior: "smooth" });
         }
       };
-      box.append(b);
       boutons.push(b);
-      if (cle === "auto" && porte === "entrer" && choisie) {   // Entrer en automatique : Naturelle ou Surprends-moi (29/10)
-        const prec = document.createElement("div");
-        prec.className = "geste-precision";
-        const label = document.createElement("label");
-        label.textContent = t("geste.entrer_label");
-        const groupe = document.createElement("div");
-        groupe.className = "pastilles";
-        groupe.setAttribute("role", "group");
-        for (const c of ["naturel", "surprise"]) {
-          const p = document.createElement("button");
-          p.type = "button";
-          p.className = "pastille";
-          p.textContent = t(`geste.animer_${c}`);
-          p.setAttribute("aria-pressed", etat.gesteValeur.entrer === c);
-          p.onclick = () => { etat.gesteValeur.entrer = c; rendreGestes(); };
-          groupe.append(p);
-        }
-        prec.append(label, groupe);
-        box.append(prec);
+      if (cle !== "auto") { box.append(b); continue; }
+      // Automatique (29/10) : la carte et son choix (fidèle / surprise) forment UN bloc, le choix en deux boutons
+      // segmentés DANS la carte. Toucher un des deux choisit aussi Automatique.
+      const bloc = document.createElement("div");
+      bloc.className = "bloc-auto" + (choisie ? " choisi" : "");
+      const segments = document.createElement("div");
+      segments.className = "segments";
+      segments.setAttribute("role", "group");
+      segments.setAttribute("aria-label", t(tit));
+      const champ = porte === "souvenir" ? "animer" : "entrer";       // etat.gesteValeur.animer / .entrer
+      for (const c of ["naturel", "surprise"]) {
+        const s = document.createElement("button");
+        s.type = "button";
+        s.className = "segment";
+        s.setAttribute("aria-pressed", choisie && etat.gesteValeur[champ] === c);
+        s.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-${c === "naturel" ? "photo" : "etincelle"}"/></svg><strong></strong><span></span>`;
+        s.querySelector("strong").textContent = t(`geste.${champ}_${c}`);
+        s.querySelector("span").textContent = t(`geste.${champ}_${c}_d`);
+        s.onclick = () => {
+          etat.gesteValeur[champ] = c;
+          if (porte === "souvenir") etat.choix = "auto"; else etat.gestes.entrer = null;
+          $("souvenir-message").hidden = true;
+          rendreGestes();
+        };
+        segments.append(s);
       }
-      if (cle === "auto") {   // la suite est en bonus : un petit titre les sépare
+      bloc.append(b, segments);
+      box.append(bloc);
+      // Texte libre (« À toi de raconter » / « Tu veux préciser ? ») : juste après Automatique, avant les bonus
+      box.append(blocRaconter[porte]);
+      {   // la suite est en bonus : un petit titre les sépare
         const bonus = document.createElement("p");
         bonus.className = "gestes-bonus";
         bonus.textContent = t("geste.bonus");
@@ -668,16 +755,14 @@ function rendreGestes() {
     }
     if (porte !== "souvenir") continue;
     const carte = carteSouvenir();
-    $("bloc-scene").hidden = carte.cle !== "scene";
-    if (PRECISIONS[carte.geste]) {                 // fin de la ligne de la carte choisie (cartes larges seules, autres par 2)
+    if (carte.cle !== "auto" && PRECISIONS[carte.geste]) {   // fin de la ligne de la carte choisie (cartes larges seules, autres par 2)
       let i = liste.indexOf(carte);
       if (!carte.large) {
         let debut = i;                              // début de la suite de cartes non larges qui contient la carte
         while (debut > 0 && !liste[debut - 1].large) debut--;
         if ((i - debut) % 2 === 0 && liste[i + 1] && !liste[i + 1].large) i++;   // 1re de la ligne : la précision passe après la 2e
       }
-      // Animer ma photo : ses deux choix juste sous la carte, avant le titre « en bonus ».
-      box.insertBefore(boxPrecision, carte.cle === "auto" ? boutons[0].nextSibling : boutons[i + 1] || null);
+      box.insertBefore(boxPrecision, boutons[i + 1] || null);   // Animer ma photo : son choix est dans le bloc Automatique
     } else boxPrecision.remove();
   }
   rendrePrecision();
@@ -687,7 +772,7 @@ function rendreGestes() {
 function rendrePrecision() {
   const box = boxPrecision;
   const geste = carteSouvenir().geste;
-  const p = PRECISIONS[geste];
+  const p = carteSouvenir().cle === "auto" ? null : PRECISIONS[geste];   // Automatique : son choix est dans sa carte
   box.innerHTML = "";
   box.hidden = !p;
   if (!p) return;
@@ -697,19 +782,24 @@ function rendrePrecision() {
   let pastillesPresets = null;                     // pré-réglages (époques, lieux) puis champ libre dessous
   if (p.presets) {
     const groupe = document.createElement("div");
-    groupe.className = "pastilles";
+    groupe.className = "pastilles medaillons";
     groupe.setAttribute("role", "group");
     pastillesPresets = [];
-    for (const c of p.presets) {
+    p.presets.forEach((c, i) => {
+      // Médaillon façon jeu vidéo (choix du 30/10) : l'emoji du texte traduit (« 🕺 Disco ») passe en grande icône
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "pastille";
-      b.textContent = t(`geste.${geste}_${c}`);
+      b.className = "pastille medaillon";
+      b.style.setProperty("--teinte", TEINTES_MEDAILLON[i % TEINTES_MEDAILLON.length]);
+      const [, emoji = "", nom = ""] = t(`geste.${geste}_${c}`).match(/^(\S+)\s+(.*)$/u) || [null, "", t(`geste.${geste}_${c}`)];
+      b.innerHTML = '<span class="medaille" aria-hidden="true"></span><span class="medaille-nom"></span>';
+      b.firstChild.textContent = emoji;
+      b.lastChild.textContent = nom;
       b.setAttribute("aria-pressed", etat.gesteValeur[geste] === c);
       b.onclick = () => { etat.gesteValeur[geste] = c; $("souvenir-message").hidden = true; rendrePrecision(); };
       pastillesPresets.push(b);
       groupe.append(b);
-    }
+    });
     box.append(groupe);
     const ou = document.createElement("small");
     ou.textContent = t(`geste.${geste}_ou`);
@@ -717,13 +807,17 @@ function rendrePrecision() {
   }
   if (p.choix) {
     const groupe = document.createElement("div");
-    groupe.className = "pastilles";
+    groupe.className = "pastilles medaillons deux";
     groupe.setAttribute("role", "group");
     for (const c of p.choix) {
-      const b = document.createElement("button");
+      const b = document.createElement("button");      // mêmes médaillons que les pré-réglages (30/10)
       b.type = "button";
-      b.className = "pastille";
-      b.textContent = t(`geste.${geste}_${c}`);
+      b.className = "pastille medaillon";
+      b.style.setProperty("--teinte", ICONES_CHOIX[c]?.[1] || TEINTES_MEDAILLON[0]);
+      b.innerHTML = '<span class="medaille" aria-hidden="true"></span><span class="medaille-nom"></span>';
+      const icone = ICONES_CHOIX[c]?.[0] || "";
+      if (icone.startsWith("<svg")) b.firstChild.innerHTML = icone; else b.firstChild.textContent = icone;   // texte fixe du code
+      b.lastChild.textContent = t(`geste.${geste}_${c}`);
       b.setAttribute("aria-pressed", etat.gesteValeur[geste] === c);
       b.onclick = () => { etat.gesteValeur[geste] = c; rendrePrecision(); };
       groupe.append(b);
@@ -771,7 +865,45 @@ function viderIdees(tout = true) {
   rendreIdees();
 }
 
+// Texte perso OU cartes (30/10) : texte actif = les cartes s'estompent et seul le texte part (creerSouvenir,
+// creerEntrer). Toucher une carte met le texte EN PAUSE (grisé, gardé, ignoré à l'envoi) ; toucher le texte le
+// reprend. La gomme du champ l'efface d'un coup.
+const textePerso = (champ) => ($(champ).classList.contains("en-pause") ? "" : $(champ).value.trim());
+function reprendreTexte(champ) { $(champ).classList.remove("en-pause"); majTexteSeul(); }
+function majTexteSeul() {
+  for (const champ of ["scene", "phrase"]) {
+    const ecrit = !!$(champ).value.trim(), pause = $(champ).classList.contains("en-pause");
+    $(champ === "scene" ? "gestes-s" : "gestes-e").classList.toggle("texte-seul", ecrit && !pause);
+    $(`${champ}-seul`).hidden = !ecrit || pause;
+    $(`${champ}-pause`).hidden = !ecrit || !pause;
+    $(`${champ}-gomme`).hidden = !ecrit;
+  }
+}
+$("phrase").addEventListener("input", majTexteSeul);
+
+for (const [cartes, champ] of [["gestes-s", "scene"], ["gestes-e", "phrase"]]) {
+  const conteneur = $(cartes);
+  const pause = (e) => {                                     // une carte, un sous-choix ou un champ de précision touché
+    if (!textePerso(champ) || e.target.closest(".raconter")) return;   // le bloc de texte libre est dans la grille
+    if (!e.target.closest("button, .pastille, input")) return;
+    $(champ).classList.add("en-pause");
+    majTexteSeul();
+  };
+  conteneur.addEventListener("click", pause, true);         // capture : la carte reçoit ensuite son toucher normalement
+  conteneur.addEventListener("focusin", pause);
+  $(champ).addEventListener("focus", () => reprendreTexte(champ));
+  $(champ).addEventListener("pointerdown", () => reprendreTexte(champ));   // déjà focalisé (iPhone) : pas de « focus »
+  $(champ).addEventListener("input", () => reprendreTexte(champ));
+  $(`${champ}-gomme`).onclick = () => {
+    $(champ).value = "";
+    reprendreTexte(champ);
+    if (champ === "scene") rendreIdees();
+    $(champ).focus();
+  };
+}
+
 function rendreIdees() {
+  majTexteSeul();
   const attente = etat.idees.attente;
   $("idees-attente").hidden = !attente;
   // Une vidéo se fabrique : les idées passent devant les autres, juste après l'étape en cours (dit honnêtement).
@@ -798,7 +930,8 @@ function rendreIdees() {
     b.append(emoji, titre, resume);
     b.onclick = () => {
       $("scene").value = p.resume;
-      etat.idees.choisie = { resume: p.resume, souhait: p.souhait };
+      reprendreTexte("scene");
+      etat.idees.choisie = { titre: p.titre, resume: p.resume, souhait: p.souhait };
       $("souvenir-message").hidden = true;
       rendreIdees();
     };
@@ -808,7 +941,7 @@ function rendreIdees() {
 
 async function demanderIdees() {
   if (etat.idees.attente) return;
-  if (!etat.photos.length) return avertir("souvenir-message", "souvenir.pas_de_photo");
+  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "case-souvenir");
   const photo = etat.photos[0];
   etat.idees.attente = true;
   $("idees-message").hidden = true;
@@ -839,9 +972,11 @@ async function demanderIdees() {
 // Nouvelle création après un film : plus de texte de scène de l'ancien souvenir.
 function nouvelleCreation() {
   $("scene").value = "";
-  $("mot-s").value = "";
-  $("mot-e").value = "";
+  $("scene").classList.remove("en-pause");
+  $("phrase").classList.remove("en-pause");
+  $("phrase").value = "";              // Entrer aussi (30/10) : sinon le texte gardé estompait les cartes du suivant
   viderIdees();
+  majTexteSeul();
   $("souvenir-message").hidden = true;
 }
 
@@ -884,6 +1019,7 @@ async function envoyer(photos, options, extra, bouton) {
     ajouterAuxFilms(d.id);
     nouvelleCreation();                  // le prochain souvenir repart d'une scène et d'une idée vides
     commencerAttente();
+    montrerGuide();                      // première vidéo : « Ton souvenir arrivera ici », une seule fois
   } catch (e) {
     if (e instanceof TypeError) {      // réponse perdue (écran verrouillé, Wi-Fi faible) : le film est peut-être parti
       await chargerGalerie();
@@ -897,22 +1033,29 @@ async function envoyer(photos, options, extra, bouton) {
 }
 
 function creerSouvenir() {
-  if (!etat.photos.length) return avertir("souvenir-message", "souvenir.pas_de_photo");
+  if (!etat.photos.length) return avertir("souvenir-message", "alerte.pas_de_photo", "case-souvenir");
   if (etat.photos.length > 1) {          // film à plusieurs photos : le serveur fait le film long
     return envoyer(etat.photos, {
       titre: $("titre").value.trim(), couleurs: etat.photos.map((f) => !!f.colorier), ambiance: etat.ambiance,
     }, {}, "creer-souvenir");
   }
-  const carte = carteSouvenir();
-  const options = { recette: carte.recette, secondes: etat.secondes, mouvement: "auto", look: etat.look };
-  if (carte.cle === "scene") {
-    let scene = $("scene").value.trim();             // geste et texte vides = Automatique : la scène vient de la photo
+  // « À toi de raconter » : texte écrit = SEUL ce texte part (amélioré par l'analyse), la carte choisie ne s'ajoute
+  // pas, sinon deux consignes se mélangent (« les gens dansent » + Changer d'époque). Décision de l'utilisateur, 30/10.
+  let scene = textePerso("scene");               // geste et texte vides = Automatique : la scène vient de la photo
+  const carte = scene ? { recette: "revit" } : carteSouvenir();
+  const options = { recette: carte.recette, secondes: etat.secondes, mouvement: "auto", look: "aucun" };
+  if (scene) {
     const idee = etat.idees.choisie;
-    if (idee && scene && scene === idee.resume.trim()) scene = idee.souhait;     // idée de l'IA non retouchée : le souhait anglais part
-    if (scene) options.scene = scene;
+    if (idee && scene === idee.resume.trim()) {      // idée de l'IA non retouchée : le souhait anglais part
+      scene = idee.souhait;
+      options.idee = { titre: idee.titre || "", resume: idee.resume };   // « Autre effet » réaffiche le résumé, pas l'anglais
+    }
+    options.scene = scene;
   }
   const geste = carte.geste || null;            // seulement pour les cartes de geste
-  if (geste) {
+  // texte seul : « Fidèle » n'ajoute aucune phrase, il garde seulement le verrou des visages (analyse.GESTES_VISAGE)
+  if (scene) Object.assign(options, { geste: "animer", geste_valeur: "naturel" });
+  else if (geste) {
     options.geste = geste;
     const p = PRECISIONS[geste];
     if (p) {
@@ -920,29 +1063,26 @@ function creerSouvenir() {
       const codeEpoque = !!p.presets && p.presets.includes(v);
       if (p.type === "annee" && !codeEpoque && !(/^\d{4}$/.test(v) && +v >= 1000 && +v <= 3000)) {
         $("geste-valeur").focus();
-        return avertir("souvenir-message", "souvenir.pas_d_annee");
+        return avertir("souvenir-message", v ? "alerte.annee_hors" : "alerte.pas_d_annee", "geste-valeur");
       }
-      if (p.type === "lieu" && !v) { $("geste-valeur").focus(); return avertir("souvenir-message", "souvenir.pas_de_lieu"); }
+      if (p.type === "lieu" && !v) { $("geste-valeur").focus(); return avertir("souvenir-message", "alerte.pas_de_lieu", "geste-valeur"); }
       options.geste_valeur = v;
     }
   }
-  const mot = $("mot-s").value.trim();
-  if (mot) options.mot = mot;
-  if (etat.couleurs !== "auto") options.couleurs = [etat.couleurs === "oui"];
   return envoyer(etat.photos, options, {}, "creer-souvenir");
 }
 
 function creerEntrer() {
-  if (!etat.image) return avertir("entrer-message", "entrer.pas_d_image");
-  if (!etat.moi) return avertir("entrer-message", "entrer.pas_de_moi");
-  const options = { recette: "revit", secondes: etat.secondes, mouvement: "auto", look: etat.look };
-  const phrase = $("phrase").value.trim();
+  if (!etat.image) return avertir("entrer-message", "alerte.pas_d_image", "case-image");
+  if (!etat.moi) return avertir("entrer-message", "alerte.pas_de_moi", "case-moi");
+  const options = { recette: "revit", secondes: etat.secondes, mouvement: "auto", look: "aucun" };
+  const phrase = textePerso("phrase");
   if (phrase) options.scene = phrase;
-  if (etat.gestes.entrer) options.geste = etat.gestes.entrer;
+  // Texte écrit (30/10, décision de l'utilisateur) : seul le texte compte, l'entrée choisie ne s'ajoute pas ;
+  // « naturel » n'ajoute aucune phrase et garde le verrou des visages.
+  if (phrase) Object.assign(options, { geste: "entrer", geste_valeur: "naturel" });
+  else if (etat.gestes.entrer) options.geste = etat.gestes.entrer;
   else Object.assign(options, { geste: "entrer", geste_valeur: etat.gesteValeur.entrer });   // automatique (29/10)
-  const mot = $("mot-e").value.trim();
-  if (mot) options.mot = mot;
-  if (etat.couleurs !== "auto") options.couleurs = [etat.couleurs === "oui"];
   return envoyer([etat.image], options, { moi_visage: etat.moi, moi_corps: etat.corps }, "creer-entrer");
 }
 
@@ -978,7 +1118,7 @@ function commencerAttente(historique = true) {
   for (const id of ["anecdote", "idee-attente", "file-attente"]) $(id).hidden = true;
   $("etape").textContent = "";
   $("restant").textContent = "";
-  Object.assign(attente, { p: 0, etape: null, faites: [], anecdote: null });
+  Object.assign(attente, { p: 0, etape: null, faites: [], anecdote: null, echecs: 0 });
   majBarre(0.02);
   majPrevenir();
   clearInterval(etat.minuterie);
@@ -1043,11 +1183,22 @@ async function suivre() {
       return montrer("accueil");
     }
     f = d;
-  } catch { return; }                // réseau coupé un instant : on réessaie au prochain tour
+    attente.echecs = 0;
+  } catch {                          // réseau coupé un instant : on réessaie au prochain tour
+    // plusieurs échecs de suite : le message réseau remplace l'attente muette ; il disparaît dès que ça revient (file-attente est réécrit plus bas)
+    attente.echecs = (attente.echecs || 0) + 1;
+    if (attente.echecs >= 3 && !etat.cleRequise && etat.ecran === "attente" && etat.film === id) {
+      const file = $("file-attente");
+      file.textContent = t("erreur.reseau");
+      file.hidden = false;
+    }
+    return;
+  }
   if (etat.ecran !== "attente" || etat.film !== id) return;   // la personne est partie ailleurs entre-temps
   majGalerie(f);
+  majSuivi();
   if (f.etape === "erreur") { localStorage.removeItem("stillive.film"); return erreur(texteFilmRate(f), f.erreur, f.id, "remplacer", f.code); }
-  if (f.etape === "fini") { annoncerPret(f); return resultat(f, "remplacer"); }
+  if (f.etape === "fini") { annoncerPret(f, true); return resultat(f, "remplacer"); }
   const n = f.total || 1;                 // une seule photo : « ta photo », « ton souvenir »
   $("sous-titre-attente").textContent = t("attente.sous_titre", { n });
 
@@ -1082,7 +1233,7 @@ async function suivre() {
   }
   if (f.anecdotes.length) {
     const i = Math.floor(Date.now() / 12000) % f.anecdotes.length;
-    const texte = (f.anecdotes_langues?.[i] || {})[langue] || f.anecdotes[i];   // suit la langue affichée, même changée pendant l'attente
+    const texte = (f.anecdotes_langues?.[i] || {})[langue] || (f.anecdotes_langues?.[i] || {}).en || f.anecdotes[i];   // suit la langue affichée, même changée pendant l'attente
     if (texte !== attente.anecdote) ecrireAnecdote(texte);
   }
 }
@@ -1223,13 +1374,109 @@ function majLecteur(cle, photo, album = "") {
   } catch { /* lecteur absent ou image refusée : sans importance */ }
 }
 
-const annonces = new Set();
-async function annoncerPret(f) {
-  if (annonces.has(f.id)) return;
-  annonces.add(f.id);
+// --- Suivi des films dans l'en-tête (29/10) ---
+// Bouton « Mes souvenirs » : sa bulle compte les films en préparation (anneau qui tourne), puis les films prêts
+// pas encore regardés (couleur vive). C'est un état, pas une alerte. L'alerte « prêt » ne sonne qu'UNE fois
+// par film : page visible, petit message en haut ; page cachée, notification du téléphone. Les films déjà
+// annoncés sont gardés dans le téléphone, partagés entre les deux.
+const CLE_VUS = "stillive.films_vus";              // films finis déjà ouverts
+const CLE_ANNONCES = "stillive.films_annonces";    // films déjà annoncés (message OU notification)
+const CLE_GUIDE = "stillive.guide_souvenirs";      // bulle-guide « Ton souvenir arrivera ici » déjà montrée
+function lireListe(cle) {
+  try {
+    const l = JSON.parse(localStorage.getItem(cle) || "[]");
+    return Array.isArray(l) ? l.filter((x) => typeof x === "string") : [];
+  } catch { return []; }
+}
+function ajouterListe(cle, id) {
+  const l = lireListe(cle);
+  if (!l.includes(id)) localStorage.setItem(cle, JSON.stringify([id, ...l].slice(0, 80)));
+}
+function marquerVu(id) {
+  if (!id) return;
+  ajouterListe(CLE_VUS, id);
+  ajouterListe(CLE_ANNONCES, id);        // ouvert : plus besoin de l'annoncer
+  if (toast.film?.id === id) cacherToast();
+  majSuivi();
+}
+
+function majSuivi() {
+  const b = $("bulle-suivi");
+  const vus = lireListe(CLE_VUS);
+  const prets = galerie.films.filter((f) => f.etape === "fini" && !vus.includes(f.id)).length;
+  const encours = galerie.films.filter(enCours).length;
+  const genre = prets ? "pret" : encours ? "encours" : "";
+  b.hidden = !genre;
+  b.textContent = genre ? String(prets || encours) : "";
+  b.classList.toggle("pret", genre === "pret");
+  b.classList.toggle("encours", genre === "encours");
+  if (prets > (majSuivi.prets || 0)) {       // un film de plus est prêt : petit rebond
+    b.classList.remove("rebond");
+    void b.offsetWidth;
+    b.classList.add("rebond");
+  }
+  majSuivi.prets = prets;
+  const etatTexte = prets ? t("suivi.prets", { n: prets }) : encours ? t("suivi.en_cours", { n: encours }) : "";
+  $("nav-souvenirs").setAttribute("aria-label", etatTexte ? `${t("suivi.bouton")} : ${etatTexte}` : t("suivi.bouton"));
+}
+
+const toast = { film: null, minuterie: null };
+function montrerToast(f) {
+  toast.film = f;
+  const img = $("toast-photo");
+  img.hidden = !f.photo;
+  if (f.photo) img.src = f.photo;
+  const box = $("toast-pret");
+  box.hidden = false;
+  box.classList.remove("arrive");
+  void box.offsetWidth;
+  box.classList.add("arrive");
+  clearTimeout(toast.minuterie);
+  toast.minuterie = setTimeout(cacherToast, 12000);
+}
+function cacherToast() {
+  clearTimeout(toast.minuterie);
+  $("toast-pret").hidden = true;
+  toast.film = null;
+}
+
+// Première vidéo lancée : une bulle montre une seule fois où le souvenir arrivera.
+function montrerGuide() {
+  if (localStorage.getItem(CLE_GUIDE)) return;
+  localStorage.setItem(CLE_GUIDE, "1");
+  const bouton = $("nav-souvenirs");
+  const bulle = $("guide-suivi");
+  const r = bouton.getBoundingClientRect();
+  if (!r.width) return;
+  bulle.style.top = `${Math.round(r.bottom + 12)}px`;
+  bulle.style.right = `${Math.max(8, Math.round(innerWidth - r.right - 60))}px`;
+  bulle.hidden = false;
+  const b = bulle.getBoundingClientRect();         // la pointe sous le milieu du bouton
+  const pointe = Math.min(b.width - 26, Math.max(8, r.left + r.width / 2 - b.left - 9));
+  bulle.style.setProperty("--pointe", `${Math.round(pointe)}px`);
+  bouton.classList.add("appel-suivi");
+  const fermer = () => {
+    bulle.hidden = true;
+    bouton.classList.remove("appel-suivi");
+    document.removeEventListener("pointerdown", fermer, true);
+  };
+  setTimeout(() => document.addEventListener("pointerdown", fermer, true), 400);
+  setTimeout(fermer, 9000);
+}
+
+// montre : le film va s'afficher tout de suite (fin de l'attente), pas de petit message en plus.
+async function annoncerPret(f, montre = false) {
+  if (lireListe(CLE_ANNONCES).includes(f.id)) return;
   majLecteur("attente.pret_titre", f.photo);
   if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([180, 90, 180]);
-  await notifier(t("attente.pret_titre"), t("attente.pret_notif"), f.id, f.id, f.photo || undefined);
+  if (document.hidden) {
+    // Page cachée : la notification du téléphone seulement. Sans notification possible, rien n'est noté :
+    // le petit message attendra le retour sur la page.
+    if (notifsActives()) ajouterListe(CLE_ANNONCES, f.id);
+    return notifier(t("attente.pret_titre"), t("attente.pret_notif"), f.id, f.id, f.photo || undefined);
+  }
+  ajouterListe(CLE_ANNONCES, f.id);       // page visible : le petit message seulement, jamais de notification
+  if (!montre) montrerToast(f);
 }
 
 // --- Mes souvenirs : la liste des films de CE téléphone ---
@@ -1246,7 +1493,11 @@ function mesFilms() {
   } catch { return []; }
 }
 function garderFilms(l) { localStorage.setItem(CLE_GALERIE, JSON.stringify(l.slice(0, GALERIE_MAX))); }
-function ajouterAuxFilms(id) { if (id && !mesFilms().includes(id)) garderFilms([id, ...mesFilms()]); }
+function ajouterAuxFilms(id) {
+  // un film lancé ici : le suivi existe désormais, ce film ne sera pas compté comme « déjà vu » au rechargement
+  if (localStorage.getItem(CLE_VUS) === null) localStorage.setItem(CLE_VUS, "[]");
+  if (id && !mesFilms().includes(id)) garderFilms([id, ...mesFilms()]);
+}
 function retirerDesFilms(id) {
   garderFilms(mesFilms().filter((x) => x !== id));
   galerie.films = galerie.films.filter((f) => f.id !== id);
@@ -1260,19 +1511,29 @@ function majGalerie(f) {
 
 async function chargerGalerie() {
   const ids = mesFilms();
-  if (!ids.length) { galerie.films = []; return rendreGalerie(); }
+  const premiereFois = localStorage.getItem(CLE_VUS) === null;   // suivi tout neuf : les films déjà finis comptent comme vus
+  if (!ids.length) {
+    galerie.films = [];
+    if (premiereFois) localStorage.setItem(CLE_VUS, "[]");
+    return rendreGalerie();
+  }
   let d;
   try {
     d = (await appelerApi(`/api/films?ids=${ids.join(",")}`)).d;
     if (!Array.isArray(d.films)) return;
   } catch { return; }                  // ordinateur injoignable : la galerie garde son dernier état
   const connus = new Map(d.films.map((f) => [f.id, f]));
-  for (const f of d.films) {           // un film fini pendant que la personne regardait ailleurs
-    const avant = galerie.films.find((x) => x.id === f.id);
-    if (avant && enCours(avant) && f.etape === "fini") annoncerPret(f);
-  }
   garderFilms(ids.filter((i) => connus.has(i)));     // films effacés de l'ordinateur : retirés
   galerie.films = ids.filter((i) => connus.has(i)).map((i) => connus.get(i));
+  if (premiereFois) {
+    const finis = JSON.stringify(galerie.films.filter((f) => f.etape === "fini").map((f) => f.id));
+    localStorage.setItem(CLE_VUS, finis);
+    localStorage.setItem(CLE_ANNONCES, finis);
+  }
+  const vus = lireListe(CLE_VUS);
+  for (const f of galerie.films) {     // un film fini pendant que la personne regardait ailleurs (une seule annonce)
+    if (f.etape === "fini" && !vus.includes(f.id) && !(etat.ecran === "resultat" && etat.resultat?.id === f.id)) annoncerPret(f);
+  }
   rendreGalerie();
 }
 
@@ -1280,6 +1541,8 @@ async function chargerGalerie() {
 function rendreGalerie() {
   $("mes-films").hidden = !galerie.films.length;
   $("galerie-vide").hidden = !!galerie.films.length;
+  majSuivi();
+  const vus = lireListe(CLE_VUS);
   for (const boite of ["bande-accueil", "mur"]) {
     const liste = galerie.films;
     const box = $(boite);
@@ -1287,7 +1550,8 @@ function rendreGalerie() {
     liste.forEach((f, i) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = `pol mini ${enCours(f) ? "en-cours" : ""} ${f.etape === "erreur" ? "rate" : ""}`;
+      b.className = `pol mini ${enCours(f) ? "en-cours" : ""} ${f.etape === "erreur" ? "rate" : ""}`
+        + (f.etape === "fini" && !vus.includes(f.id) ? " nouveau" : "");     // prêt, pas encore regardé : pastille vive
       b.style.setProperty("--r", `${((i * 37) % 7) - 3}deg`);
       b.setAttribute("aria-label", t("galerie.ouvrir"));
       const img = document.createElement("img");
@@ -1347,7 +1611,10 @@ function confirmer(texte, libelleOui) {
     $("confirmation-oui").textContent = libelleOui;
     voile.hidden = false;
     $("confirmation-non").focus();
-    const clore = (reponse) => {
+    let sur = null;
+    const clore = (reponse, parRetour = false) => {
+      if (sur && !parRetour) fermerSurcouche(sur);       // le Retour du téléphone = « Non » ; sinon on retire l'entrée d'historique
+      sur = null;
       voile.hidden = true;
       voile.onclick = null;
       document.removeEventListener("keydown", touche, true);
@@ -1359,6 +1626,7 @@ function confirmer(texte, libelleOui) {
     $("confirmation-oui").onclick = () => clore(true);
     $("confirmation-non").onclick = () => clore(false);
     voile.onclick = (e) => { if (e.target === voile) clore(false); };
+    sur = ouvrirSurcouche(() => clore(false, true));
   });
 }
 
@@ -1409,6 +1677,7 @@ function resultat(f, historique = true) {
   if (localStorage.getItem("stillive.film") === f.id) localStorage.removeItem("stillive.film");
   ajouterAuxFilms(f.id);
   majGalerie(f);
+  marquerVu(f.id);                     // ouvert : il ne compte plus dans la bulle « Mes souvenirs »
   if (etat.ecran === "resultat") historique = "remplacer";   // passer d'un film à l'autre n'empile pas l'historique
   montrer("resultat", historique);
   rendreGalerie();
@@ -1440,7 +1709,7 @@ function afficherFilm() {
   majLecteur("attente.pret_titre", etat.resultat.photo, dateCourte(etat.resultat.cree));
   lancerFilm();
   $("telecharger").href = url;
-  $("telecharger").setAttribute("download", `stillive_${etat.format}.mp4`);
+  $("telecharger").setAttribute("download", nomTelechargement(etat.format, "mp4", etat.resultat.cree));
   majPartagerFilm();
   document.querySelectorAll("#formats .format").forEach((b, i) => {
     b.setAttribute("aria-pressed", ["vertical", "horizontal"][i] === etat.format);
@@ -1461,6 +1730,18 @@ function majPartagerFilm() {
   $("telecharger").classList.toggle("gros-bouton-clair", ok);
 }
 
+// Nom de fichier unique : stillive_<type>_<AAAAMMJJ-HHMMSS>.<ext> (date du film si connue, sinon l'instant présent).
+function nomTelechargement(type, ext, secondes) {
+  const d = secondes ? new Date(secondes * 1000) : new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  const court = String(type || "film").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]/g, "").toLowerCase().slice(0, 20) || "film";
+  return `stillive_${court}_${date}.${ext}`;
+}
+$("telecharger").addEventListener("click", () => {   // recalculé à chaque clic
+  if (etat.resultat) $("telecharger").setAttribute("download", nomTelechargement(etat.format, "mp4", etat.resultat.cree));
+});
+
 async function partagerFilm() {
   const bouton = $("partager-film");
   if (bouton.disabled || !etat.resultat) return;
@@ -1470,7 +1751,7 @@ async function partagerFilm() {
     const cle = cleSecrete();
     const r = await fetch(etat.resultat.films[etat.format], cle ? { headers: { "X-Stillive-Cle": cle } } : {});
     if (!r.ok) throw new Error("film");
-    const fichier = new File([await r.blob()], "stillive.mp4", { type: "video/mp4" });
+    const fichier = new File([await r.blob()], nomTelechargement(etat.format, "mp4", etat.resultat.cree), { type: "video/mp4" });
     await navigator.share({ files: [fichier], title: "Stillive", text: t("resultat.partager_texte") });
   } catch (e) {
     if (e?.name !== "AbortError") {
@@ -1602,7 +1883,12 @@ function changerFilm(sens) {
 (function glisser() {
   const zone = $("lecteur");
   let x0 = null, y0 = 0;
-  zone.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  zone.addEventListener("touchstart", (e) => {
+    const bas = $("film").getBoundingClientRect().bottom;
+    // un geste qui commence sur les contrôles de la vidéo (bande basse, ~56 px : barre de progression) n'est pas un changement de film
+    if (e.touches.length !== 1 || e.touches[0].clientY > bas - 56) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+  }, { passive: true });
   zone.addEventListener("touchend", (e) => {
     if (x0 == null) return;
     const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
@@ -1640,7 +1926,7 @@ async function photoDuFilm(f) {
   } catch { return null; }
 }
 
-// « Refaire avec un autre effet » : rouvre la porte du film avec ses réglages (scène, geste, petit mot, durée),
+// « Refaire avec un autre effet » : rouvre la porte du film avec ses réglages (scène, geste, durée),
 // la personne n'a qu'à changer ce qu'elle veut.
 async function refaire() {
   const f = etat.resultat;
@@ -1649,23 +1935,22 @@ async function refaire() {
   const garde = !!f && etat.film === f.id;           // les photos de etat sont bien celles de ce film
   const reglages = () => {
     if (DUREES.includes(f.secondes)) etat.secondes = f.secondes;
-    if (LOOKS.includes(f.look)) etat.look = f.look;
     majDuree();
     rendreAvance();
   };
   if (f && porte === "souvenir" && (f.scene || f.geste || f.recette === "temps" || f.recette === "boucle")) {
     const parGeste = GESTES_SOUVENIR.find((c) => c.geste && c.geste === f.geste);   // geste retiré ou inconnu : on passe au reste
-    etat.choix = parGeste ? parGeste.cle : f.recette === "temps" ? "temps" : f.recette === "boucle" ? "boucle" : f.scene ? "scene" : "auto";
-    if (etat.choix === "scene") {
+    etat.choix = parGeste ? parGeste.cle : f.recette === "temps" ? "temps" : f.recette === "boucle" ? "boucle" : "auto";
+    if (f.scene) {                                     // texte libre : toujours visible, quelle que soit la carte (29/10)
       $("scene").value = f.scene || "";
+      $("scene").classList.remove("en-pause");
       if (f.idee?.resume && f.scene) {                 // idée de l'IA non retouchée : le souhait anglais repartira tel quel
         $("scene").value = f.idee.resume;
-        etat.idees.choisie = { resume: f.idee.resume, souhait: f.scene };
+        etat.idees.choisie = { titre: f.idee.titre || "", resume: f.idee.resume, souhait: f.scene };
       }
     }
     if (parGeste && PRECISIONS[parGeste.geste] && f.geste_valeur) etat.gesteValeur[parGeste.geste] = String(f.geste_valeur);
     rendreGestes();
-    $("mot-s").value = f.mot || "";
     reglages();
     rendreIdees();
     ouvrirPorte("souvenir");
@@ -1677,10 +1962,10 @@ async function refaire() {
   }
   if (f && porte === "entrer") {
     $("phrase").value = f.scene || "";
+    $("phrase").classList.remove("en-pause");
     etat.gestes.entrer = codeGeste(GESTES_ENTRER, f.geste || null);
     if (f.geste === "entrer" && ["naturel", "surprise"].includes(f.geste_valeur)) etat.gesteValeur.entrer = f.geste_valeur;
     rendreGestes();
-    $("mot-e").value = f.mot || "";
     reglages();
     ouvrirPorte("entrer");
     if (!(garde && etat.image)) {
@@ -1713,7 +1998,13 @@ function erreur(message, detail, filmId, historique = true, code = null) {
 // --- Scan d'une photo papier ---
 // Le serveur trouve les 4 coins (stillive/scan.py) ; l'utilisateur les ajuste au doigt, puis le tirage
 // redressé entre dans la liste des photos par le chemin normal (ajouterPhotos).
-const scan = { id: null, coins: [], alertes: [], poignees: [], remplacer: true };
+const scan = { id: null, coins: [], alertes: [], poignees: [], remplacer: true, porte: "souvenir" };
+// La photo scannée va dans la case du mode qui a lancé le scan (« Le souvenir » d'Entrer, ou la photo de Faire revivre).
+async function rangerScan(photo) {
+  if (scan.porte === "entrer") { etat.image = photo; retenir("souvenir", photo); return ouvrirPorte("entrer"); }
+  await ajouterPhotos([photo], scan.remplacer);
+  ouvrirPorte("souvenir");
+}
 
 function scanTracer() {
   $("scan-polygone").setAttribute("points", scan.coins.map(([x, y]) => `${x},${y}`).join(" "));
@@ -1780,13 +2071,282 @@ async function scanValider() {
     });
     const blob = await r.blob();
     scan.id = null;
-    await ajouterPhotos([new File([blob], `scan_${Date.now()}.jpg`, { type: "image/jpeg" })], scan.remplacer);
-    ouvrirPorte("souvenir");
+    await rangerScan(new File([blob], `scan_${Date.now()}.jpg`, { type: "image/jpeg" }));
   } catch (e) {
     erreur(e instanceof TypeError ? t("erreur.reseau") : e.message);
   } finally {
     $("scan-valider").disabled = false;
   }
+}
+
+// --- Scan sans confirmation (30/10) : la photo prise est redressée avec les coins trouvés par le serveur et entre
+// tout de suite dans la case. Si la détection échoue, la photo entière est gardée. « Recadrer » permet d'ajuster.
+async function scanAuto(fichier) {
+  if (!fichier) return;
+  const jeton = scan.jeton = (scan.jeton || 0) + 1;      // « Annuler » ou un autre scan invalide celui-ci
+  montrer("scan-cadre");
+  $("scan-etat").textContent = t("scan.analyse");
+  for (const id of ["scan-cadre", "scan-alertes", "scan-aide", "scan-valider"]) $(id).hidden = true;
+  let photo = fichier;
+  try {
+    const corps = new FormData();
+    corps.append("photo", fichier, fichier.name || "scan.jpg");
+    const { d } = await appelerApi("/api/scan", { method: "POST", body: corps });
+    if (jeton !== scan.jeton) return;
+    $("scan-etat").textContent = t("scan.redresse");
+    const { r } = await appelerApi(`/api/scan/${d.id}/redresser`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coins: d.coins }),
+    });
+    const blob = await r.blob();
+    if (blob && blob.size) photo = new File([blob], `scan_${Date.now()}.jpg`, { type: "image/jpeg" });
+  } catch { /* détection ou redressement raté : la photo entière est gardée */ }
+  if (jeton !== scan.jeton) return;
+  await rangerScan(photo);
+}
+
+// --- Recadrage (30/10) : écran plein écran, cadre libre (coins + déplacement), pointer events (doigt et souris) ---
+const originaux = new WeakMap();        // photo recadrée -> photo d'origine, pour « Recadrer » à nouveau
+const rec = { actif: false, bitmap: null, fichier: null, fin: null, c: null, w: 0, h: 0, touche: false, mode: null };
+const REC_MIN = 48;                     // plus petit côté du cadre, en pixels d'écran
+const REC_COIN = 44;                    // distance du doigt à un coin pour le saisir (un doigt couvre ~40 px)
+const REC_MARGE = 40;                   // marge autour de la photo : coins hors de la bande « retour » des bords du téléphone
+
+// Rend la photo à garder : la même (cadre non touché), une nouvelle recadrée, ou null (annulé).
+async function recadrer(fichier) {
+  if (rec.actif) return null;
+  let bitmap;
+  try { bitmap = await createImageBitmap(fichier); } catch { return fichier; }    // format illisible ici (HEIC…) : tel quel
+  Object.assign(rec, { actif: true, bitmap, fichier, touche: false, mode: null, c: { l: 0, t: 0, r: 1, b: 1 } });
+  $("recadrage").hidden = false;
+  document.body.style.overflow = "hidden";
+  recPoser();
+  $("rec-ok").focus();
+  rec.sur = ouvrirSurcouche(() => recFermer(null, true));      // Retour du téléphone = Annuler
+  return new Promise((fin) => { rec.fin = fin; });
+}
+
+function recPoser() {
+  const sc = $("rec-scene");
+  const k = Math.min((sc.clientWidth - 2 * REC_MARGE) / rec.bitmap.width, (sc.clientHeight - 2 * REC_MARGE) / rec.bitmap.height);
+  rec.w = Math.max(60, Math.round(rec.bitmap.width * k));
+  rec.h = Math.max(60, Math.round(rec.bitmap.height * k));
+  const cv = $("rec-canvas");
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(rec.w * dpr);
+  cv.height = Math.round(rec.h * dpr);
+  cv.style.width = `${rec.w}px`;
+  cv.style.height = `${rec.h}px`;
+  cv.getContext("2d").drawImage(rec.bitmap, 0, 0, cv.width, cv.height);
+  $("rec-image").style.width = `${rec.w}px`;
+  $("rec-image").style.height = `${rec.h}px`;
+  recTracer();
+}
+
+function recTracer() {
+  const { l, t: haut, r, b } = rec.c;
+  const s = $("rec-cadre").style;
+  s.left = `${l * rec.w}px`;
+  s.top = `${haut * rec.h}px`;
+  s.width = `${(r - l) * rec.w}px`;
+  s.height = `${(b - haut) * rec.h}px`;
+}
+
+function recFermer(valeur, parRetour = false) {
+  if (!rec.actif) return;
+  rec.actif = false;
+  if (rec.sur && !parRetour) fermerSurcouche(rec.sur);     // fermé par un bouton : l'entrée d'historique est retirée
+  rec.sur = null;
+  $("recadrage").hidden = true;
+  document.body.style.overflow = "";
+  rec.bitmap.close();
+  rec.bitmap = null;
+  const fin = rec.fin;
+  rec.fin = null;
+  if (fin) fin(valeur);
+}
+
+async function recValider() {
+  const { l, t: haut, r, b } = rec.c;
+  const tout = l <= 0.004 && haut <= 0.004 && r >= 0.996 && b >= 0.996;
+  let sortie = rec.fichier;                          // cadre non touché : photo entière, sans recompression
+  if (rec.touche && !tout) {
+    const bw = rec.bitmap.width, bh = rec.bitmap.height;
+    const sx = Math.round(l * bw), sy = Math.round(haut * bh);
+    const sw = Math.max(1, Math.min(bw - sx, Math.round((r - l) * bw))), sh = Math.max(1, Math.min(bh - sy, Math.round((b - haut) * bh)));
+    const cv = document.createElement("canvas");
+    cv.width = sw;
+    cv.height = sh;
+    cv.getContext("2d").drawImage(rec.bitmap, sx, sy, sw, sh, 0, 0, sw, sh);
+    const blob = await new Promise((ok) => cv.toBlob(ok, "image/jpeg", 0.92));
+    if (blob) sortie = new File([blob], `${(rec.fichier.name || "photo").replace(/\.[^.]*$/, "") || "photo"}-recadree.jpg`, { type: "image/jpeg" });
+  }
+  recFermer(sortie);
+}
+
+function recPointeur(e) {
+  const r = $("rec-image").getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+function initRecadrage() {
+  // Toute la scène écoute (pas seulement la photo) : un coin posé sur le bord de la photo se saisit aussi quand le
+  // doigt tombe juste à côté, hors de l'image (cause des prises « une fois sur deux » au téléphone, 30/10).
+  const zone = $("rec-scene");
+  zone.addEventListener("pointerdown", (e) => {
+    if (!rec.actif || rec.mode) return;
+    const [x, y] = recPointeur(e);
+    const c = rec.c;
+    const coins = [["l", "t"], ["r", "t"], ["l", "b"], ["r", "b"]];
+    let meilleur = null, dmin = REC_COIN;
+    for (const [a, b] of coins) {
+      const d = Math.hypot(x - c[a] * rec.w, y - c[b] * rec.h);
+      if (d <= dmin) { dmin = d; meilleur = [a, b]; }
+    }
+    if (meilleur) rec.mode = { type: "coin", a: meilleur[0], b: meilleur[1], dx: c[meilleur[0]] * rec.w - x, dy: c[meilleur[1]] * rec.h - y };
+    else if (x >= c.l * rec.w && x <= c.r * rec.w && y >= c.t * rec.h && y <= c.b * rec.h) rec.mode = { type: "deplacer", x, y, c0: { ...c } };
+    else return;
+    zone.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  zone.addEventListener("pointermove", (e) => {
+    const m = rec.mode;
+    if (!rec.actif || !m || !zone.hasPointerCapture(e.pointerId)) return;
+    const [x, y] = recPointeur(e);
+    const c = rec.c;
+    const mx = REC_MIN / rec.w, my = REC_MIN / rec.h;
+    const borne = (v, mi, ma) => Math.min(ma, Math.max(mi, v));
+    if (m.type === "coin") {
+      const px = (x + m.dx) / rec.w, py = (y + m.dy) / rec.h;
+      if (m.a === "l") c.l = borne(px, 0, c.r - mx); else c.r = borne(px, c.l + mx, 1);
+      if (m.b === "t") c.t = borne(py, 0, c.b - my); else c.b = borne(py, c.t + my, 1);
+    } else {
+      const c0 = m.c0;
+      const dx = borne((x - m.x) / rec.w, -c0.l, 1 - c0.r), dy = borne((y - m.y) / rec.h, -c0.t, 1 - c0.b);
+      Object.assign(c, { l: c0.l + dx, r: c0.r + dx, t: c0.t + dy, b: c0.b + dy });
+    }
+    rec.touche = true;
+    recTracer();
+    e.preventDefault();
+  });
+  const fin = () => { rec.mode = null; };
+  zone.addEventListener("pointerup", fin);
+  zone.addEventListener("pointercancel", fin);
+  $("rec-ok").onclick = recValider;
+  $("rec-annuler").onclick = () => recFermer(null);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && rec.actif) recFermer(null); });
+  window.addEventListener("resize", () => { if (rec.actif) recPoser(); });
+  // Bouton « Recadrer » (icône + mot) sur chaque case : rouvre l'écran sur la photo d'origine
+  document.querySelectorAll(".case-retirer").forEach((x) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "case-recadrer";
+    b.hidden = true;
+    b.dataset.case = x.dataset.case;
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v15h15M2 7h15v15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="recadrage.bouton"></span>';
+    b.querySelector("span").textContent = t("recadrage.bouton");
+    b.onclick = () => recadrerCase(b.dataset.case);
+    x.before(b);
+  });
+}
+
+const FAMILLES_CASE = { image: "souvenir", moi: "visage", corps: "corps" };
+
+// Choix d'une photo dans une case simple : écran de recadrage, puis le chemin habituel (aperçu, mémoire, envoi).
+async function choisirRecadree(fichiers, appliquer, famille) {
+  const f = premiereImage(fichiers);                  // lu tout de suite : le champ fichier est vidé juste après
+  if (!f) { if (fichiers.length) messagePhotoRefusee(); return; }
+  const g = await recadrer(f);
+  if (!g) return;
+  if (g !== f) originaux.set(g, f);
+  choisirUne([g], appliquer, famille);
+}
+
+async function recadrerCase(cas) {
+  const actuel = cas === "souvenir" ? etat.photos[0] : etat[cas];
+  if (!actuel) return;
+  const source = originaux.get(actuel) || actuel;
+  const g = await recadrer(source);
+  if (!g) return;
+  if (g !== source) originaux.set(g, source);
+  if (g === actuel) return;
+  if (cas === "souvenir") return ajouterPhotos([g], true);
+  etat[cas] = g;
+  majPhotos();
+  retenir(FAMILLES_CASE[cas], g);
+}
+
+// --- Alertes qui guident (30/10) : bandeau corail qui pulse 3 fois, mène à la case concernée ---
+function pulser(el, ms) {
+  if (!el) return;
+  el.classList.remove("pulse-cible");
+  void el.offsetWidth;
+  el.classList.add("pulse-cible");
+  clearTimeout(+el.dataset.pulse || 0);
+  el.dataset.pulse = setTimeout(() => el.classList.remove("pulse-cible"), ms);
+}
+
+function montrerCase(id) {
+  const el = $(id);
+  if (!el) return;
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  pulser(el, 3000);
+}
+
+function masquerBandeau() {
+  const b = $("bandeau-alerte");
+  if (!b) return;
+  b.hidden = true;
+  clearTimeout(+b.dataset.minuterie || 0);
+}
+
+function bandeauAlerte(cle, cible) {
+  let b = $("bandeau-alerte");
+  if (!b) {
+    b = document.createElement("button");
+    b.type = "button";
+    b.id = "bandeau-alerte";
+    b.className = "bandeau-alerte";
+    b.setAttribute("role", "alert");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3L2 21h20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 18v.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg><span></span>';
+    document.body.append(b);
+  }
+  masquerBandeau();
+  b.querySelector("span").textContent = t(cle);
+  b.onclick = () => { masquerBandeau(); montrerCase(cible); };
+  // juste au-dessus du bouton de création s'il est à l'écran, sinon collé en bas
+  const creer = $(etat.ecran === "entrer" ? "creer-entrer" : "creer-souvenir");
+  const r = creer.getBoundingClientRect();
+  const visible = r.top > 90 && r.bottom < window.innerHeight;
+  b.style.bottom = visible ? `${Math.round(window.innerHeight - r.top + 10)}px` : "calc(16px + env(safe-area-inset-bottom))";
+  b.hidden = false;
+  b.classList.remove("actif");
+  void b.offsetWidth;
+  b.classList.add("actif");
+  b.dataset.minuterie = setTimeout(masquerBandeau, 15000);
+}
+
+// --- Bulle sous les pastilles de durée (30/10) : choisir une durée ne lance rien ---
+function masquerBulle() {
+  document.querySelectorAll(".bulle-duree").forEach((b) => { clearTimeout(+b.dataset.minuterie || 0); b.remove(); });
+}
+
+function bulleDuree(box) {
+  masquerBulle();
+  const entrer = !!box.closest("#ecran-entrer");
+  let cible = null, cle = "";
+  if (entrer) {
+    if (!etat.image) { cible = "case-image"; cle = "bulle.photo"; }
+    else if (!etat.moi) { cible = "case-moi"; cle = "bulle.visage"; }
+  } else if (!etat.photos.length) { cible = "case-souvenir"; cle = "bulle.photo"; }
+  const creer = $(entrer ? "creer-entrer" : "creer-souvenir");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "bulle-duree";
+  b.textContent = cible ? t(cle) : t("bulle.note", { bouton: creer.textContent });
+  b.onclick = () => { masquerBulle(); if (cible) montrerCase(cible); };
+  box.after(b);
+  b.dataset.minuterie = setTimeout(masquerBulle, 4000);
+  if (!cible) pulser(creer, 2000);
 }
 
 // --- Stillive pas prêt : l'installation se fait sur l'ordinateur (web/ordinateur.html) ---
@@ -1824,15 +2384,15 @@ document.querySelectorAll("[data-aller]").forEach((b) => { b.onclick = () => mon
 $("porte-souvenir").onclick = () => ouvrirPorte("souvenir");
 $("porte-entrer").onclick = () => ouvrirPorte("entrer");
 
-$("choisir").onchange = (e) => { const f = premiereImage(e.target.files); ajouterPhotos(f ? [f] : e.target.files, true); e.target.value = ""; };
-$("choisir-plus").onchange = (e) => { ajouterPhotos(e.target.files, false); e.target.value = ""; };
-$("choisir-image").onchange = (e) => { choisirUne(e.target.files, (f) => { etat.image = f; }, "souvenir"); e.target.value = ""; };
-$("choisir-moi").onchange = (e) => { choisirUne(e.target.files, (f) => { etat.moi = f; }, "visage"); e.target.value = ""; };
+$("choisir").onchange = (e) => { const f = premiereImage(e.target.files); if (f) choisirRecadree([f], (g) => ajouterPhotos([g], true)); else ajouterPhotos(e.target.files, true); e.target.value = ""; };
+$("choisir-image").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.image = f; }, "souvenir"); e.target.value = ""; };
+$("choisir-moi").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.moi = f; }, "visage"); e.target.value = ""; };
 // « ou choisir une photo » est DANS la case du selfie : ce bouton ouvre la galerie au lieu de l'appareil photo
 $("case-moi-galerie").onclick = (e) => { e.preventDefault(); e.stopPropagation(); $("choisir-moi").click(); };
-$("choisir-selfie").onchange = (e) => { choisirUne(e.target.files, (f) => { etat.moi = f; }, "visage"); e.target.value = ""; };
-$("choisir-corps").onchange = (e) => { choisirUne(e.target.files, (f) => { etat.corps = f; }, "corps"); e.target.value = ""; };
-$("prendre-corps").onchange = (e) => { choisirUne(e.target.files, (f) => { etat.corps = f; }, "corps"); e.target.value = ""; };
+$("case-corps-prendre").onclick = (e) => { e.preventDefault(); e.stopPropagation(); $("prendre-corps").click(); };
+$("choisir-selfie").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.moi = f; }, "visage"); e.target.value = ""; };
+$("choisir-corps").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.corps = f; }, "corps"); e.target.value = ""; };
+$("prendre-corps").onchange = (e) => { choisirRecadree(e.target.files, (f) => { etat.corps = f; }, "corps"); e.target.value = ""; };
 // Chaque champ photo est remis à zéro AVANT son ouverture : choisir deux fois de suite la même photo (ou
 // revenir sur une case déjà remplie) déclenche toujours le choix, sans recharger la page.
 document.querySelectorAll('input[type="file"]').forEach((champ) => { champ.addEventListener("click", () => { champ.value = ""; }); });
@@ -1845,11 +2405,13 @@ document.querySelectorAll(".case-retirer").forEach((b) => {
 });
 $("film-seul").onclick = () => { etat.photos = etat.photos.slice(0, 1); majPhotos(); };
 
-$("scanner").onclick = () => { scan.remplacer = true; montrer("scan-conseils"); };
-$("scanner-autre").onclick = () => { scan.remplacer = false; montrer("scan-conseils"); };
-$("scan-retour").onclick = () => ouvrirPorte("souvenir");
-$("scan-annuler").onclick = () => ouvrirPorte("souvenir");
-$("scan-prise").onchange = (e) => { scanEnvoyer(e.target.files[0]); e.target.value = ""; };
+$("scanner").onclick = () => { scan.remplacer = true; scan.porte = "souvenir"; montrer("scan-conseils"); };
+$("scanner-e").onclick = () => { scan.porte = "entrer"; montrer("scan-conseils"); };
+$("scanner-autre").onclick = () => { scan.remplacer = false; scan.porte = "souvenir"; montrer("scan-conseils"); };
+$("scan-retour").onclick = () => ouvrirPorte(scan.porte);
+$("scan-annuler").onclick = () => { scan.jeton = (scan.jeton || 0) + 1; ouvrirPorte(scan.porte); };
+$("scan-prise").onchange = (e) => { scanAuto(e.target.files[0]); e.target.value = ""; };      // plus de « Valider » : coins automatiques
+initRecadrage();
 $("scan-garder").onclick = () => { $("scan-alertes").hidden = true; };
 $("scan-valider").onclick = scanValider;
 
@@ -1883,7 +2445,9 @@ $("erreur-supprimer").onclick = () => supprimerFilm(etat.filmRate);
 $("reessayer").onclick = () => ouvrirPorte(etat.porte);
 $("erreur-forcer").onclick = async () => {
   const id = etat.filmRate;
-  if (!id) return;
+  const bouton = $("erreur-forcer");
+  if (!id || bouton.disabled) return;      // un second toucher pendant l'appel ne relance rien
+  bouton.disabled = true;
   try {
     await appelerApi(`/api/films/${id}/forcer`, { method: "POST" });
     etat.film = id;                     // le film repart en attente : on le suit comme à sa création
@@ -1891,6 +2455,8 @@ $("erreur-forcer").onclick = async () => {
     commencerAttente();
   } catch (e) {
     erreur(e instanceof TypeError ? t("erreur.reseau") : e.message, "", id, true, "pas_enfant");
+  } finally {
+    bouton.disabled = false;
   }
 };
 $("prevenir").onclick = demanderPrevenir;
@@ -1898,19 +2464,35 @@ $("notifs").onclick = basculerNotifs;
 $("attente-autre").onclick = () => montrer("accueil");
 $("logo").onclick = (e) => { e.preventDefault(); montrer("accueil"); };
 $("nav-accueil").onclick = () => montrer("accueil");
+$("nav-souvenirs").onclick = () => { cacherToast(); montrer("galerie"); };
+// Petit message « Ton souvenir est prêt ! » : tout le message ouvre le film, sauf la croix qui le ferme.
+$("toast-pret").onclick = (e) => {
+  const f = toast.film;
+  cacherToast();
+  if (e.target.closest("#toast-fermer") || !f) return;
+  ouvrirFilm(galerie.films.find((x) => x.id === f.id) || f);
+};
 // « Retour » : l'écran d'avant (comme le bouton du téléphone), sinon l'accueil
 $("nav-retour").onclick = () => { if ((history.state?.i || 0) > 0) history.back(); else montrer("accueil"); };
 
-// « La suite plus bas » : visible quand l'écran continue sous le bord, tant qu'on n'a pas fait défiler
+// « Fais défiler » : à gauche, loin du pouce droit, un petit rond discret. Le dégradé en bas d'écran dit
+// qu'il y a une suite tant qu'on n'est pas arrivé en bas.
 function majPlusBas() {
   const reste = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-  $("plus-bas").hidden = reste < 160 || window.scrollY > 60 || ["attente", "cle"].includes(etat.ecran);
+  const sans = etat.ecran === "cle";
+  // écran d'attente : la pastille cacherait la carte « Créer un autre souvenir » ; écran du film : le choix
+  // « Pour le téléphone » (30/10)
+  $("plus-bas").hidden = reste < 160 || window.scrollY > 60 || sans || etat.ecran === "attente" || etat.ecran === "resultat";
+  $("voile-bas").hidden = reste < 40 || sans;
 }
 window.addEventListener("scroll", majPlusBas, { passive: true });
 window.addEventListener("resize", majPlusBas);
 $("plus-bas").onclick = () => window.scrollBy({ top: window.innerHeight * 0.7, behavior: "smooth" });
 // Bouton « Partager » à côté de la langue : code QR pour qu'une autre personne ouvre Stillive (PC ou téléphone)
-function fermerPartage() {
+let partageSur = null;
+function fermerPartage(parRetour = false) {
+  if (partageSur && parRetour !== true) fermerSurcouche(partageSur);   // fermé par un bouton : l'entrée d'historique est retirée
+  partageSur = null;
   $("partage-voile").hidden = true;
   document.removeEventListener("keydown", touchePartage, true);
 }
@@ -1921,6 +2503,7 @@ $("partage").onclick = async () => {
   $("partage-absent").hidden = true;
   voile.hidden = false;
   document.addEventListener("keydown", touchePartage, true);
+  if (!partageSur) partageSur = ouvrirSurcouche(() => fermerPartage(true));   // Retour du téléphone = fermer le QR
   $("partage-fermer").focus();
   let adresse = null;
   try {
@@ -1936,9 +2519,78 @@ $("partage").onclick = async () => {
   $("partage-qr").replaceChildren(qrSvg(adresse, t("partage.alt")));
   $("partage-qr").hidden = false;
 };
-$("partage-fermer").onclick = fermerPartage;
+$("partage-fermer").onclick = () => fermerPartage();
 $("partage-voile").onclick = (e) => { if (e.target === $("partage-voile")) fermerPartage(); };
-$("langue").onclick = () => chargerLangue(LANGUES[(LANGUES.indexOf(langue) + 1) % LANGUES.length]);
+// Menu des langues : carte déroulante sous le bouton, langue active cochée ; Échap, clic dehors ou choix la ferment.
+let menuLangue = null;
+let menuSur = null;
+function fermerMenuLangue(rendreFocus = false, parRetour = false) {
+  if (!menuLangue) return;
+  if (menuSur && parRetour !== true) fermerSurcouche(menuSur);   // fermé autrement que par Retour : l'entrée d'historique est retirée
+  menuSur = null;
+  menuLangue.remove();
+  menuLangue = null;
+  $("langue").setAttribute("aria-expanded", "false");
+  document.removeEventListener("pointerdown", dehorsMenuLangue, true);
+  document.removeEventListener("keydown", cleMenuLangue, true);
+  window.removeEventListener("resize", fermerMenuLangue);
+  if (rendreFocus) $("langue").focus();
+}
+function dehorsMenuLangue(e) {
+  if (menuLangue && !menuLangue.contains(e.target) && !$("langue").contains(e.target)) fermerMenuLangue();
+}
+function cleMenuLangue(e) {
+  if (e.key === "Escape") { e.preventDefault(); fermerMenuLangue(true); return; }
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  e.preventDefault();
+  const options = [...menuLangue.querySelectorAll("[role=option]")];
+  const i = options.indexOf(document.activeElement);
+  options[(i + (e.key === "ArrowDown" ? 1 : options.length - 1)) % options.length].focus();
+}
+function ouvrirMenuLangue() {
+  const bouton = $("langue");
+  const menu = document.createElement("div");
+  menu.className = "menu-langue";
+  menu.setAttribute("role", "listbox");
+  menu.setAttribute("aria-label", t("langue.changer"));
+  for (const code of LANGUES) {
+    const o = document.createElement("button");
+    o.type = "button";
+    o.className = "menu-langue-option";
+    o.setAttribute("role", "option");
+    o.setAttribute("aria-selected", String(code === langue));
+    o.lang = code;
+    if (code === "ar") o.dir = "rtl";
+    const nom = document.createElement("span");
+    nom.textContent = NOMS_LANGUES[code];
+    const coche = document.createElement("span");
+    coche.className = "menu-langue-coche";
+    coche.setAttribute("aria-hidden", "true");
+    coche.textContent = code === langue ? "✓" : "";
+    o.append(nom, coche);
+    o.onclick = () => {
+      fermerMenuLangue(true);
+      if (code === langue) localStorage.setItem("stillive.langue.choisie", code);
+      else chargerLangue(code, true);
+    };
+    menu.append(o);
+  }
+  document.body.append(menu);
+  const r = bouton.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 6}px`;
+  if (r.left + r.width / 2 > window.innerWidth / 2) menu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+  else menu.style.left = `${Math.max(8, r.left)}px`;
+  menuLangue = menu;
+  menuSur = ouvrirSurcouche(() => fermerMenuLangue(false, true));     // Retour du téléphone = fermer le menu
+  bouton.setAttribute("aria-expanded", "true");
+  document.addEventListener("pointerdown", dehorsMenuLangue, true);
+  document.addEventListener("keydown", cleMenuLangue, true);
+  window.addEventListener("resize", fermerMenuLangue);
+  (menu.querySelector("[aria-selected=true]") || menu.firstChild).focus();
+}
+$("langue").setAttribute("aria-haspopup", "listbox");
+$("langue").setAttribute("aria-expanded", "false");
+$("langue").onclick = () => { if (menuLangue) fermerMenuLangue(); else ouvrirMenuLangue(); };
 // Retour sur la page (téléphone rallumé, onglet repris) : tout se remet à jour tout de suite.
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
@@ -1959,6 +2611,5 @@ chargerLangue(langue).then((ok) => {
 });
 // Toutes les 10 s : l'ordinateur a-t-il fini de se préparer ? un film de la galerie a-t-il fini ?
 prep.minuterie = setInterval(() => {
-  verifierPrep();
-  if (etat.ecran !== "attente" && galerie.films.some(enCours)) chargerGalerie();
+  verifierPrep();                      // les films en cours sont suivis toutes les 5 s (plus haut)
 }, 10000);

@@ -2,11 +2,36 @@
 // photos (Gemma 4 12B) et les modèles vidéo, puis montre le code QR pour ouvrir Stillive sur le téléphone.
 // Tous les textes viennent de web/i18n/<langue>.json (le même fichier que la page téléphone).
 // Routes : GET /api/moteur, POST /api/moteur/{installer,utiliser,ollama/telecharger}, GET /api/info.
-const LANGUES = ["fr", "en"];
+const LANGUES = ["en", "zh", "es", "ar", "pt", "id", "fr", "ja", "ru", "de"];       // un fichier web/i18n/<code>.json par langue (l'anglais sert de base)
+const NOMS_LANGUES = { en: "English", zh: "中文", es: "Español", ar: "العربية", pt: "Português", id: "Bahasa Indonesia", fr: "Français", ja: "日本語", ru: "Русский", de: "Deutsch" };
 const REF2VA_GO = 23;                 // « Entrer dans l'image » : +23 Go (repli si le serveur ne donne pas la taille)
+// Stockage protégé : refusé par le navigateur, les valeurs vivent en mémoire au lieu de faire planter la page (audit 30/10).
+(function protegerStockage() {
+  let reel = null;
+  try { reel = window.localStorage; reel.getItem("stillive.test"); } catch { reel = null; }
+  const memoire = new Map();
+  const sur = {
+    getItem(k) { if (memoire.has(k)) return memoire.get(k); try { const v = reel ? reel.getItem(k) : null; return v === undefined ? null : v; } catch { return null; } },
+    setItem(k, v) { memoire.set(k, String(v)); try { if (reel) reel.setItem(k, String(v)); } catch { /* plein ou refusé */ } },
+    removeItem(k) { memoire.delete(k); try { if (reel) reel.removeItem(k); } catch { /* refusé */ } },
+  };
+  try { Object.defineProperty(window, "localStorage", { value: sur, configurable: true }); } catch { /* repli impossible */ }
+})();
+
 let textes = {};
-let langue = localStorage.getItem("stillive.langue") || (navigator.language || "fr").slice(0, 2);
-if (!LANGUES.includes(langue)) langue = "fr";
+// Langue : choix MANUEL mémorisé (« stillive.langue.choisie »), sinon langue du téléphone (navigator.languages), sinon anglais.
+// L'ancienne clé « stillive.langue » était écrite automatiquement : ignorée.
+function langueDetectee() {
+  const choisie = localStorage.getItem("stillive.langue.choisie");
+  if (LANGUES.includes(choisie)) return choisie;
+  for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language])) {
+    let c = String(l || "").toLowerCase().split("-")[0];
+    if (c === "ms" || c === "in") c = "id";
+    if (LANGUES.includes(c)) return c;
+  }
+  return "en";
+}
+let langue = langueDetectee();
 const $ = (id) => document.getElementById(id);
 const ui = { d: null, reseau: true, derniere: null, erreurAction: "", quant: null, sigQuants: "", sigProgs: "",
   adresse: null, adresseCherchee: false, qrPour: null, minuterie: null };
@@ -26,6 +51,7 @@ async function lireLangue(code) {
     try {
       const r = await fetch(`/web/i18n/${code}.json`);
       if (r.ok) return await r.json();
+      if (r.status === 404) return null;                  // fichier de langue pas (encore) écrit : inutile de réessayer
     } catch { /* réseau pas encore stable : nouvel essai */ }
     await new Promise((ok) => setTimeout(ok, 800));
   }
@@ -49,8 +75,11 @@ function afficherSecours() {
   document.body.prepend(boite);
 }
 
-async function chargerLangue(code) {
-  const lus = await lireLangue(code);
+async function chargerLangue(code, manuel = false) {
+  // L'anglais sert de base : une clé absente ou un fichier de langue manquant affiche l'anglais.
+  const base = Object.keys(textes).length && langue === "en" ? textes : await lireLangue("en");
+  const propres = code === "en" ? {} : await lireLangue(code);
+  const lus = base || propres ? { ...(base || {}), ...(propres || {}) } : null;
   if (!lus) {
     if (!Object.keys(textes).length) afficherSecours();
     return false;
@@ -59,7 +88,8 @@ async function chargerLangue(code) {
   textes = lus;
   langue = code;
   document.documentElement.lang = code;
-  localStorage.setItem("stillive.langue", code);
+  document.documentElement.dir = code === "ar" ? "rtl" : "ltr";
+  if (manuel) localStorage.setItem("stillive.langue.choisie", code);   // seuls les choix manuels sont gardés
   $("langue").textContent = code.toUpperCase();
   document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll("[data-t-label]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.tLabel)); });
@@ -480,5 +510,70 @@ $("moteur-tester").onclick = (e) => {
   const prog = (((ui.d && ui.d.detectes) || []).find((p) => p.url === url) || {}).programme || "openai";
   utiliserProgramme({ programme: prog, url, modele }, e.currentTarget);
 };
-$("langue").onclick = () => chargerLangue(LANGUES[(LANGUES.indexOf(langue) + 1) % LANGUES.length]);
+// Menu des langues : carte déroulante sous le bouton, langue active cochée ; Échap, clic dehors ou choix la ferment.
+let menuLangue = null;
+function fermerMenuLangue(rendreFocus = false) {
+  if (!menuLangue) return;
+  menuLangue.remove();
+  menuLangue = null;
+  $("langue").setAttribute("aria-expanded", "false");
+  document.removeEventListener("pointerdown", dehorsMenuLangue, true);
+  document.removeEventListener("keydown", cleMenuLangue, true);
+  window.removeEventListener("resize", fermerMenuLangue);
+  if (rendreFocus) $("langue").focus();
+}
+function dehorsMenuLangue(e) {
+  if (menuLangue && !menuLangue.contains(e.target) && !$("langue").contains(e.target)) fermerMenuLangue();
+}
+function cleMenuLangue(e) {
+  if (e.key === "Escape") { e.preventDefault(); fermerMenuLangue(true); return; }
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  e.preventDefault();
+  const options = [...menuLangue.querySelectorAll("[role=option]")];
+  const i = options.indexOf(document.activeElement);
+  options[(i + (e.key === "ArrowDown" ? 1 : options.length - 1)) % options.length].focus();
+}
+function ouvrirMenuLangue() {
+  const bouton = $("langue");
+  const menu = document.createElement("div");
+  menu.className = "menu-langue";
+  menu.setAttribute("role", "listbox");
+  menu.setAttribute("aria-label", t("langue.changer"));
+  for (const code of LANGUES) {
+    const o = document.createElement("button");
+    o.type = "button";
+    o.className = "menu-langue-option";
+    o.setAttribute("role", "option");
+    o.setAttribute("aria-selected", String(code === langue));
+    o.lang = code;
+    if (code === "ar") o.dir = "rtl";
+    const nom = document.createElement("span");
+    nom.textContent = NOMS_LANGUES[code];
+    const coche = document.createElement("span");
+    coche.className = "menu-langue-coche";
+    coche.setAttribute("aria-hidden", "true");
+    coche.textContent = code === langue ? "✓" : "";
+    o.append(nom, coche);
+    o.onclick = () => {
+      fermerMenuLangue(true);
+      if (code === langue) localStorage.setItem("stillive.langue.choisie", code);
+      else chargerLangue(code, true);
+    };
+    menu.append(o);
+  }
+  document.body.append(menu);
+  const r = bouton.getBoundingClientRect();
+  menu.style.top = `${r.bottom + 6}px`;
+  if (r.left + r.width / 2 > window.innerWidth / 2) menu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+  else menu.style.left = `${Math.max(8, r.left)}px`;
+  menuLangue = menu;
+  bouton.setAttribute("aria-expanded", "true");
+  document.addEventListener("pointerdown", dehorsMenuLangue, true);
+  document.addEventListener("keydown", cleMenuLangue, true);
+  window.addEventListener("resize", fermerMenuLangue);
+  (menu.querySelector("[aria-selected=true]") || menu.firstChild).focus();
+}
+$("langue").setAttribute("aria-haspopup", "listbox");
+$("langue").setAttribute("aria-expanded", "false");
+$("langue").onclick = () => { if (menuLangue) fermerMenuLangue(); else ouvrirMenuLangue(); };
 chargerLangue(langue).then((ok) => { if (ok) rafraichir(); });

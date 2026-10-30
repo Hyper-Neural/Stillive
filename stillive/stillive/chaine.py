@@ -38,7 +38,7 @@ def _estimation(n, n_retouche, depuis, secondes=7):
 
 
 def fabriquer(photos, sortie, comfy_url, secondes=7, avec_retouche=True, couleurs=None, ambiance="auto", titre=None, legendes=None,
-              signature=None, langue="fr", rapport=lambda nom, donnees: None):
+              signature=None, langue="en", rapport=lambda nom, donnees: None):
     """couleurs : une case par photo, False pour garder une photo noir et blanc telle
     quelle (elle est quand même réparée si besoin) ; None = mise en couleur automatique."""
     os.makedirs(sortie, exist_ok=True)

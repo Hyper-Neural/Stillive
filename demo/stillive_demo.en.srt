@@ -1,0 +1,132 @@
+1
+00:00:00,250 --> 00:00:01,949
+This is me. Leo. Sixteen.
+
+2
+00:00:01,949 --> 00:00:05,280
+And this is my graphics card. It's older than me.
+
+3
+00:00:05,600 --> 00:00:10,583
+So I made Mom a presentation: why our family needs a new GPU.
+
+4
+00:00:10,583 --> 00:00:12,788
+Not for me. For the family.
+
+5
+00:00:13,200 --> 00:00:15,035
+Christmas morning. It worked.
+
+6
+00:00:16,400 --> 00:00:21,120
+And I kept my promise. ComfyUI, Stillive, one click.
+
+7
+00:00:21,120 --> 00:00:24,660
+Mom scanned a QR code, and that was it.
+
+8
+00:00:24,660 --> 00:00:27,745
+No account. No cloud. Just our PC.
+
+9
+00:00:27,900 --> 00:00:33,004
+On her phone, two doors: bring a memory back to life, or step into one.
+
+10
+00:00:33,004 --> 00:00:35,088
+Pick a photo. Tap. That's it.
+
+11
+00:00:35,200 --> 00:00:39,297
+Summer 2005. My great-grandparents, before I was born.
+
+12
+00:00:39,297 --> 00:00:41,269
+Mom tapped: "Surprise me."
+
+13
+00:00:43,300 --> 00:00:46,563
+My great-grandparents' wedding, 1952.
+
+14
+00:00:46,563 --> 00:00:49,209
+Back in color. Back in motion.
+
+15
+00:00:49,800 --> 00:00:52,993
+Now, the magic trick: change era.
+
+16
+00:00:53,200 --> 00:00:56,095
+My cousin's 25th. One tap: pirates.
+
+17
+00:00:56,095 --> 00:01:00,148
+Same faces. Same smiles. Three centuries earlier.
+
+18
+00:01:00,700 --> 00:01:01,815
+Or teleport them.
+
+19
+00:01:01,815 --> 00:01:04,372
+Same family, under the northern lights.
+
+20
+00:01:05,700 --> 00:01:08,048
+No idea fits? Write your own.
+
+21
+00:01:08,048 --> 00:01:11,529
+Anything you imagine, Stillive animates it.
+
+22
+00:01:11,400 --> 00:01:15,240
+Dad's camping trip, '85. Dad's the kid with the headphones.
+
+23
+00:01:15,240 --> 00:01:16,737
+Dad imagined... a lion.
+
+24
+00:01:18,900 --> 00:01:19,937
+Thanks, Dad.
+
+25
+00:01:20,200 --> 00:01:23,182
+Then Mom found the second door. One selfie...
+
+26
+00:01:23,182 --> 00:01:25,964
+and she walked into her own bedroom. 1994.
+
+27
+00:01:25,964 --> 00:01:28,747
+And hugged the little girl she used to be.
+
+28
+00:01:28,900 --> 00:01:30,975
+Okay. I cried a little.
+
+29
+00:01:31,200 --> 00:01:35,966
+How does it work? Gemma 4 looks at the photo and writes the scene.
+
+30
+00:01:35,966 --> 00:01:39,071
+MiniMax H3 turns it into video, with sound.
+
+31
+00:01:39,071 --> 00:01:42,466
+All inside ComfyUI, on our own PC. Open source.
+
+32
+00:01:45,000 --> 00:01:46,835
+And my new graphics card?
+
+33
+00:01:47,400 --> 00:01:50,113
+Booked. Until next Christmas.
+

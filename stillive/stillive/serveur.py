@@ -31,7 +31,7 @@ SCANS = os.path.join(ROOT, "donnees", "scans")
 PROPOSITIONS = os.path.join(ROOT, "donnees", "propositions")
 SCAN_DUREE_MAX = 3600  # un scan ou une proposition abandonnés sont supprimés après 1 h (au démarrage et ensuite)
 FILE_MAX = 6  # films non terminés (en attente ou en fabrication) acceptés en même temps
-EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 PHOTO_MAX = 40 * 1024 * 1024  # octets par photo reçue
 PHOTOS_MAX = 12  # photos par film
 ERREUR_MAX = 2000  # caractères de détail technique gardés
@@ -102,6 +102,10 @@ def _annuler_film(film_id, film):
     """Annule un film. En attente : retiré tout de suite (galerie et disque). En fabrication : marqué,
     il s'arrête à la prochaine étape (ComfyUI n'est pas coupé). Rend True si le film est retiré de suite."""
     film["annule"] = True
+    try:  # sans options.json, un redémarrage du serveur ne relance plus ce film
+        os.remove(os.path.join(DATA, film_id, "options.json"))
+    except OSError:
+        pass
     with tour:
         tour.notify_all()  # un film qui attend son tour se réveille et se retire de la file
     if film["etape"] == "attente":
@@ -205,16 +209,18 @@ def _nouveau(film_id, total):
 def _vue(film):
     """État d'un film pour la page : les heures du PC deviennent des durées (l'horloge du téléphone
     peut différer), plus la place dans la file d'attente."""
+    film = dict(list(film.items()))  # copie : le thread de fabrication modifie le film en même temps
+    file_copie = list(file_films)
     v = {k: x for k, x in film.items() if k not in ("restant_t", "debut", "maj")}
     now = time.time()
     v["ecoule"] = round(now - film["debut"]) if film.get("debut") else None
     v["depuis_estimation"] = round(now - film["restant_t"]) if film.get("restant_t") else None
-    v["avant"] = file_films.index(film["id"]) if film["id"] in file_films else 0
+    v["avant"] = file_copie.index(film["id"]) if film["id"] in file_copie else 0
     if film.get("etape") == "attente" and film.get("total", 1) == 1:
         # En file : temps restant = fin du film en cours + films d'avant + celui-ci (compte à rebours dès l'attente).
         reste = 0
-        for i, fid in enumerate(file_films[:v["avant"]]):
-            autre = films.get(fid) or {}
+        for i, fid in enumerate(file_copie[:v["avant"]]):
+            autre = dict(list((films.get(fid) or {}).items()))
             if i == 0 and autre.get("restant") is not None and autre.get("restant_t"):
                 reste += max(15, autre["restant"] - (now - autre["restant_t"]))
             else:
@@ -332,7 +338,7 @@ async def _recevoir_film(request, film_id):
         if part.name == "photos" and part.filename:
             ext = os.path.splitext(part.filename)[1].lower()
             if ext not in EXTENSIONS:
-                continue
+                raise _Refus("format_photo")
             if len(photos) >= PHOTOS_MAX:
                 raise _Refus("trop_de_photos")
             path = os.path.join(dossier, f"{len(photos):02d}{ext}")
@@ -341,7 +347,7 @@ async def _recevoir_film(request, film_id):
         elif part.name in ("moi_visage", "moi_corps") and part.filename:
             ext = os.path.splitext(part.filename)[1].lower()
             if ext not in EXTENSIONS:
-                continue
+                raise _Refus("format_photo")
             os.makedirs(os.path.join(DATA, film_id, "moi"), exist_ok=True)  # hors de photos/ : pas des photos du film
             moi[part.name] = os.path.join(DATA, film_id, "moi", f"{part.name}{ext}")
             await _recevoir(part, moi[part.name])
@@ -356,6 +362,10 @@ async def _recevoir_film(request, film_id):
             options = {k: v for k, v in options.items() if k not in ("moi_visage", "moi_corps")}
     if not photos:
         return web.json_response({"erreur": "aucune_photo"}, status=400)
+    try:  # secondes : valeur sûre (4 à 15) même si la requête envoie autre chose
+        options["secondes"] = clip.duree_valide(options.get("secondes", 8))
+    except (ValueError, TypeError, OverflowError):
+        options["secondes"] = 8
     options = {**options, **moi}
     if moi and len(photos) > 1:
         return web.json_response({"erreur": "moi_une_seule_photo"}, status=400)
@@ -391,7 +401,7 @@ async def propositions(request):
         if part.name == "photo" and part.filename:
             ext = os.path.splitext(part.filename)[1].lower()
             if ext not in EXTENSIONS:
-                continue
+                return web.json_response({"erreur": "format_photo"}, status=413)
             film_id = uuid.uuid4().hex[:10]
             os.makedirs(os.path.join(PROPOSITIONS, film_id), exist_ok=True)
             photo = os.path.join(PROPOSITIONS, film_id, f"photo{ext}")
@@ -422,6 +432,9 @@ async def propositions(request):
             None, _proposer, photo, dossier, request.app["comfy"], champs.get("langue") or "en", secondes, deja)
     except ValueError as e:  # réponse de l'analyse illisible : code lisible par la page, jamais une liste vide
         return web.json_response({"erreur": "propositions_illisibles", "detail": str(e)}, status=502)
+    except Exception as e:  # ComfyUI injoignable ou autre échec : même code que pour un film
+        code = _code_erreur(e) or "propositions_illisibles"
+        return web.json_response({"erreur": code, "detail": str(e)[:ERREUR_MAX]}, status=502)
     return web.json_response({"id": film_id, "propositions": idees})
 
 

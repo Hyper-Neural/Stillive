@@ -4,12 +4,14 @@
 
 Stillive turns a single photo (a family picture, a vintage print, a phone snapshot) into a short animated clip with music and ambient sound, ready to share. It is made for everyone, from grandparents to kids: no AI knowledge, no settings, nothing to learn.
 
+**▶ [Watch the 2-minute demo](demo/stillive_demo.mp4)** (English subtitles: [demo/stillive_demo.en.srt](demo/stillive_demo.en.srt))
+
 ## Made for the whole family
 
 - **Set up once** on the home computer. After that, everyone just uses their phone.
 - **No app to install**: scan the QR code once, and Stillive opens in the phone's browser.
 - **Three steps**: pick a photo (or scan a paper print with the phone camera), tap an effect, watch your clip a few minutes later.
-- **Big, friendly buttons**, playful waiting screen, English and French.
+- **Big, friendly buttons**, playful waiting screen, in 10 languages (English, Chinese, Spanish, Arabic, Portuguese, Indonesian, French, Japanese, Russian, German).
 - **Private by design**: everything runs on your own computer, nothing leaves your home.
 
 ## What you can do
@@ -46,11 +48,30 @@ Clips are short (5 seconds) or long (10 seconds), with an optional little note a
 - Update: download the new version and run the installer again. Your settings, models and clips are kept.
 - Uninstall: on the computer, open the preparation page, section "Uninstall Stillive", and choose what to remove. It only removes what Stillive installed itself, never your own models.
 
-## Privacy
+## Privacy and child safety
 
-- Your photos and clips stay on your computer. Nothing is sent online.
-- The phone page only opens with the secret code inside the QR code.
-- Settings, installation and uninstallation are only available on the computer itself.
+Stillive is made for family photos, often with children in them. Here is exactly what it does with them.
+
+**Your photos stay at home**
+- Everything runs on your own computer. Stillive sends no photo, video or text online: no account, no tracking, no statistics, no fonts or scripts loaded from the internet. The only connections are the downloads of the software and the AI models during installation and updates (GitHub, Hugging Face).
+- The phone page only opens with the secret code inside the QR code, so nobody else on your Wi-Fi can see your photos. Settings, installation and uninstallation are only available on the computer itself.
+- The app reminds you to use photos of your family with their consent, especially for children.
+
+**You stay in control of your data**
+- Delete one clip, or all of them with "Delete all". Scanned paper photos and idea suggestions are deleted automatically after one hour. Finished clips stay until you delete them.
+- The phone keeps your last photos in its browser so you can reuse them; each one can be removed.
+- Uninstalling (from the computer) removes what Stillive installed, after showing you the list.
+- Since nothing leaves your home, you are the only one holding your family's photos (in GDPR terms, the processing stays private and under your control).
+
+**Children in the photos**
+- When a young child is in the photo, the effects are written to keep them a child: "Back to childhood" turns adults into the children they were, and children stay children; "Hug your younger self" first checks that a child is really there.
+- Every effect is a gentle, family-oriented preset (dance, travel in time, bring back colors, cartoon version...).
+
+**About the AI models, honestly**
+- Gemma 4 (Google): its training data was filtered for child sexual abuse material and sensitive personal data, according to Google's model card.
+- MiniMax H3: MiniMax describes automatic moderation of inputs on its own online platform; that moderation does not run when the model works locally on your computer.
+- Qwen Image (photo restoration): no safety filter is announced by its publisher.
+- Stillive does not add an automatic content filter. The app is designed for family memories, and the adults using it remain responsible for the photos and texts they choose.
 
 ## How it works
 

@@ -22,21 +22,30 @@ body { max-width: 480px; margin: 0 auto; min-height: 100dvh; padding: 0 18px 32p
   font: 500 16px var(--texte); background: var(--encre); color: var(--creme); border: 0; }
 .nav-bouton svg { width: 20px; height: 20px; flex: none; }
 .nav-retour { order: -1; }
-.nav-accueil { background: none; color: var(--encre); border: 1.5px solid var(--encre); padding: 0 12px 0 10px; }
+.nav-accueil { background: none; color: var(--encre); border: 1.5px solid var(--encre); padding: 0; width: 44px; justify-content: center; }   /* maison seule (29/10) */
 body[data-ecran="accueil"] .nav-bouton, body[data-ecran="cle"] .nav-bouton { display: none; }
 body:not([data-ecran="accueil"]) #partage { display: none; }
 body:not([data-ecran="accueil"]) .logo { font-size: 22px; }
 @media (max-width: 380px) { .nav-accueil span { display: none; } .nav-accueil { padding: 0; width: 44px; justify-content: center; } }
-/* « La suite plus bas » : petit bouton rond dans le coin bas droit, au-dessus du gros bouton collé en bas.
-   L'ancienne pastille centrée avec texte cachait le texte de la page (retour du 29/10) : la phrase reste lue
-   par les lecteurs d'écran, la flèche seule se voit. */
-.plus-bas { position: fixed; right: calc(14px + env(safe-area-inset-right)); bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 30;
-  display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
-  background: var(--canard); color: #fff; opacity: .92; box-shadow: 0 4px 12px rgba(43, 29, 26, .3); animation: rebond 1.6s ease-in-out infinite; }
-.plus-bas svg { width: 22px; height: 22px; }
+/* Téléphone étroit : de la place pour Retour, Accueil, Mes souvenirs, la cloche et la langue (29/10).
+   Hors de l'accueil, la maison ramène déjà à l'accueil : le logo s'efface. */
+@media (max-width: 420px) {
+  .outils-barre { gap: 6px; }
+  body[data-ecran="accueil"] .logo { font-size: 24px; }
+  body:not([data-ecran="accueil"]) .logo { display: none; }
+}
+/* « Fais défiler » (29/10) : en bas à GAUCHE, loin du pouce droit, au-dessus du gros bouton collé en bas.
+   Petit rond discret et semi-transparent. Le dégradé en bas d'écran dit qu'il y a une suite. */
+.plus-bas { position: fixed; left: calc(14px + env(safe-area-inset-left)); bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 30;
+  display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid rgba(43, 29, 26, .15); border-radius: 50%; cursor: pointer;
+  background: rgba(255, 253, 248, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  color: var(--encre); box-shadow: 0 1px 4px rgba(43, 29, 26, .08); }
+.plus-bas svg { width: 18px; height: 18px; flex: none; opacity: .55; animation: rebond 1.6s ease-in-out infinite; }
 .plus-bas span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-@keyframes rebond { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
-@media (prefers-reduced-motion: reduce) { .plus-bas { animation: none; } }
+@keyframes rebond { 0%, 100% { transform: translateY(-1.5px); } 50% { transform: translateY(1.5px); } }
+.voile-bas { position: fixed; left: 0; right: 0; bottom: 0; height: 36px; z-index: 4; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 244, 226, 0), rgba(255, 244, 226, .7)); }
+@media (prefers-reduced-motion: reduce) { .plus-bas, .plus-bas svg { animation: none; } }
 .logo { display: flex; align-items: center; gap: 8px; font-family: var(--titre); font-weight: 600; font-size: 28px; line-height: 1; }
 .logo .nom-logo { display: flex; align-items: baseline; white-space: nowrap; font-variation-settings: "SOFT" 100, "WONK" 0; letter-spacing: -0.01em; }
 .logo .illi { height: 1em; width: auto; overflow: visible; position: relative; top: 0.215em; margin: 0 -0.01em; }
@@ -47,9 +56,56 @@ body:not([data-ecran="accueil"]) .logo { font-size: 22px; }
 .partage svg { width: 20px; height: 20px; }
 .cloche .cloche-oui, .cloche[aria-pressed="true"] .cloche-non { display: none; }
 .cloche[aria-pressed="true"] .cloche-oui { display: block; }
+/* Mes souvenirs dans l'en-tête (29/10) : bulle en préparation (anneau qui tourne) ou prêts non vus (vive, rebond) */
+.nav-souvenirs { position: relative; }
+.nav-souvenirs svg { width: 22px; height: 22px; }
+body[data-ecran="cle"] .nav-souvenirs { display: none; }
+body[data-ecran="galerie"] .nav-souvenirs { background: var(--encre); color: var(--creme); }
+.bulle-suivi { position: absolute; top: -7px; right: -9px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
+  display: grid; place-items: center; font: 700 12.5px/1 var(--texte); color: #fff; border: 2px solid var(--creme); }
+.bulle-suivi.encours { background: var(--canard); }
+.bulle-suivi.encours::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid transparent;
+  border-top-color: var(--canard); border-right-color: var(--canard); animation: tourne 1.1s linear infinite; }
+.bulle-suivi.pret { background: var(--corail-fonce); box-shadow: 0 0 0 3px rgba(232, 87, 63, .25); }
+.bulle-suivi.rebond { animation: rebond-bulle .7s cubic-bezier(.3, 1.6, .5, 1) 2; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@keyframes rebond-bulle { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.45) translateY(-3px); } 70% { transform: scale(.9); } }
+.nav-souvenirs.appel-suivi { animation: appel-suivi 1s ease-in-out 4; }
+@keyframes appel-suivi { 50% { box-shadow: 0 0 0 7px rgba(255, 201, 74, .7); } }
+/* Bulle-guide « Ton souvenir arrivera ici » : pointe vers le bouton (--pointe = milieu du bouton) */
+.guide-suivi { position: fixed; z-index: 40; right: 12px; max-width: min(78vw, 300px); padding: 12px 16px; border-radius: 16px;
+  background: var(--soleil); color: var(--encre); font: 600 22px/1.1 var(--main); box-shadow: 0 8px 22px rgba(43, 29, 26, .25); animation: guide-arrive .45s ease-out; }
+.guide-suivi::after { content: ""; position: absolute; top: -8px; left: var(--pointe, calc(100% - 40px)); width: 18px; height: 18px; background: var(--soleil); transform: rotate(45deg); border-radius: 3px; }
+@keyframes guide-arrive { from { opacity: 0; transform: translateY(-8px); } }
+/* « Ton souvenir est prêt ! » : petit message en haut, tout entier touchable */
+.toast-pret { position: fixed; z-index: 45; top: calc(10px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(94vw, 440px);
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; background: var(--papier); border: 2px solid var(--corail-fonce);
+  border-radius: 18px; box-shadow: 0 10px 28px rgba(43, 29, 26, .28); cursor: pointer; }
+.toast-pret.arrive { animation: toast-arrive .5s cubic-bezier(.3, 1.4, .5, 1); }
+@keyframes toast-arrive { from { opacity: 0; transform: translate(-50%, -30px); } }
+.toast-photo { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; flex: none; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(43, 29, 26, .3); transform: rotate(-4deg); }
+.toast-texte { flex: 1; min-width: 0; }
+.toast-texte strong { font: 500 18px/1.15 var(--titre); }
+.toast-voir { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 30px; background: var(--corail-fonce); color: #fff; font: 500 16px var(--texte); cursor: pointer; }
+.toast-fermer { flex: none; width: 36px; height: 44px; border: 0; background: none; color: var(--doux); font-size: 22px; cursor: pointer; padding: 0; }
 .message-bref { position: fixed; left: 50%; top: 70px; transform: translateX(-50%); z-index: 30; max-width: 88vw; background: var(--encre); color: var(--creme); font: 500 15px var(--texte); padding: 10px 16px; border-radius: 12px; box-shadow: 0 6px 18px rgba(43, 29, 26, .25); }
 #partage-qr { align-self: center; }
-.langue { font: 500 14px var(--texte); background: none; border: 1.5px solid var(--encre); border-radius: 22px; padding: 0 14px; min-width: 56px; min-height: 44px; color: var(--encre); cursor: pointer; }
+.langue { font: 500 12px var(--texte); letter-spacing: .04em; background: none; border: 1.5px solid var(--encre); border-radius: 22px; padding: 0 10px; min-width: 44px; min-height: 44px; color: var(--encre); cursor: pointer; }
+/* Menu des langues : carte blanche arrondie sous le bouton */
+.menu-langue { position: fixed; z-index: 60; min-width: 190px; max-height: 70vh; overflow-y: auto; padding: 6px; background: #fff; border: 1px solid var(--bord); border-radius: 16px; box-shadow: 0 10px 30px rgba(43, 29, 26, .22); animation: entree .18s ease-out; }
+.menu-langue-option { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 44px; padding: 0 12px; background: none; border: 0; border-radius: 10px; color: var(--encre); font: 500 17px var(--texte); text-align: start; cursor: pointer; }
+.menu-langue-option:hover, .menu-langue-option:focus-visible { background: var(--creme); outline: none; }
+.menu-langue-option[aria-selected="true"] { font-weight: 700; }
+.menu-langue-coche { color: var(--canard-texte); font-weight: 700; }
+/* Arabe (écriture de droite à gauche) : quelques éléments posés en absolu côté droit passent à gauche */
+[dir="rtl"] .porte, [dir="rtl"] .carte-effet, [dir="rtl"] .carte-geste, [dir="rtl"] .carte-idee, [dir="rtl"] .aide-tel, [dir="rtl"] .titre-bouton { text-align: right; }
+[dir="rtl"] .case-retirer, [dir="rtl"] .reserve-item .oublier { right: auto; left: -8px; }
+[dir="rtl"] .vignette .fermer { right: auto; left: -14px; }
+[dir="rtl"] .carte-geste[aria-pressed="true"]::after { right: auto; left: 6px; }
+[dir="rtl"] .plus-bas { right: auto; left: calc(14px + env(safe-area-inset-left)); }
+[dir="rtl"] .ruban { right: auto; left: -8px; transform: rotate(-4deg); }
+[dir="rtl"] .porte-vivante .ruban { left: auto; right: -8px; transform: rotate(4deg); }
+[dir="rtl"] .etape-cours::before { margin-right: 0; margin-left: 8px; }
 
 .ecran { display: flex; flex-direction: column; gap: 14px; animation: entree .5s ease-out; }
 @keyframes entree { from { opacity: 0; transform: translateY(12px); } }
@@ -231,8 +287,6 @@ label.gros-bouton { cursor: pointer; }
 .avance summary { font: 400 14px var(--texte); color: var(--doux); opacity: .75; cursor: pointer; min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: underline; text-underline-offset: 3px; list-style: none; }
 .avance summary::-webkit-details-marker { display: none; }
 .avance-corps { display: flex; flex-direction: column; gap: 10px; padding: 6px 0 4px; }
-#avance-simple { display: flex; flex-direction: column; gap: 10px; }
-.plusieurs { cursor: pointer; }
 .alerte { background: #FFF8EC; border: 2px solid var(--corail-fonce); padding: 10px 14px; margin: 0; font-size: 16px; line-height: 1.35; }
 .note { background: var(--papier); border: 1px solid var(--bord); padding: 10px 14px; margin: 0; font-size: 15px; line-height: 1.35; color: var(--encre); }
 button:focus-visible, label:focus-visible, [role="button"]:focus-visible, summary:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
@@ -301,7 +355,34 @@ a.logo { color: inherit; text-decoration: none; min-height: 44px; }
 .mot strong { display: block; font: 500 19px/1.2 var(--titre); }
 .mot > span:not(.manuscrit) { font-size: 15px; }
 #idee-attente { transform: rotate(1deg); }
-.carte-fermer { border: 1.5px dashed var(--bord); border-radius: 14px; padding: 4px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+/* Attente (29/10) : des cartes à icône ronde, comme les tuiles de fin ; la couleur --c donne le ton de chaque carte */
+.carte-progres { display: flex; flex-direction: column; gap: 10px; background: var(--papier); border: 1px solid var(--bord); border-radius: 18px;
+  padding: 14px 16px 12px; box-shadow: 0 3px 0 var(--bord); }
+.carte-progres .etapes-faites { margin: 0; }
+.carte-attente { --c: var(--canard); display: grid; grid-template-columns: 44px 1fr; column-gap: 12px; align-items: start;
+  background: var(--papier); border: 1px solid var(--bord); border-radius: 18px; padding: 14px 16px; box-shadow: 0 3px 0 var(--bord); }
+.carte-attente > svg { grid-row: 1 / span 3; width: 22px; height: 22px; padding: 11px; box-sizing: content-box; border-radius: 50%;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+.carte-attente > :not(svg) { grid-column: 2; }
+.carte-attente > small { display: block; margin: 2px 0 4px; font: 700 12.5px/1.2 var(--texte); letter-spacing: .06em; text-transform: uppercase; color: var(--c); }
+.carte-patience { --c: var(--violet); transform: rotate(-1deg); }
+.carte-patience .astuce { text-align: left; min-height: 2.4em; font: 600 22px/1.2 var(--main); color: var(--encre); }
+.carte-idee-attente { --c: var(--corail-fonce); }
+.carte-vu { --c: var(--canard-texte); transform: rotate(1deg); background: linear-gradient(170deg, #fff 60%, #E8F4F3); }
+.carte-vu .manuscrit { font-size: 22px; line-height: 1.2; }
+.carte-vu .manuscrit::after { content: ""; display: inline-block; width: 2px; height: .9em; margin-left: 2px; vertical-align: -2px; background: var(--canard); animation: battement 1s steps(2) infinite; }
+/* « Créer un autre souvenir » : grand bouton-carte, mis en avant */
+.carte-autre { display: grid; grid-template-columns: 56px 1fr 26px; column-gap: 12px; align-items: center; text-align: left; margin-top: 4px;
+  padding: 14px 12px 14px 14px; border: 2px solid var(--corail); border-radius: 20px; background: linear-gradient(160deg, #fff 55%, #FFEDE7);
+  box-shadow: 0 4px 0 var(--corail), 0 0 0 4px rgba(232, 87, 63, .1); color: var(--encre); font: inherit; cursor: pointer; transition: transform .15s; }
+.carte-autre:active { transform: scale(.98); }
+.carte-autre-ic { grid-row: 1 / 3; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--corail); color: #fff; }
+.carte-autre-ic svg { width: 28px; height: 28px; }
+.carte-autre strong { font: 500 20px/1.15 var(--titre); }
+.carte-autre small { grid-column: 2; font-size: 14px; line-height: 1.3; color: var(--doux); margin-top: 2px; }
+.carte-autre-fleche { grid-row: 1 / 3; grid-column: 3; width: 22px; height: 22px; color: var(--corail-fonce); }
+.attente-prevenir { display: contents; }
+#prevenu { text-align: center; }
 
 /* Mes souvenirs : petite galerie qui défile de côté */
 .mes-films { display: flex; flex-direction: column; gap: 8px; }
@@ -401,8 +482,8 @@ a.logo { color: inherit; text-decoration: none; min-height: 44px; }
 .duo-col .lien { font-size: 18px; }
 .case-ou { margin-top: 2px; padding: 7px 12px; min-height: 38px; background: #fff; border: 2px solid var(--canard-texte); border-radius: 999px;
   font: 700 15px/1.1 var(--texte); color: var(--canard-texte); cursor: pointer; }
-#case-moi .case-vide svg { width: 50%; }
-#case-moi .case-vide { gap: 4px; padding: 8px 6px; }          /* place pour « ou choisir une photo » dans la case */
+#case-moi .case-vide svg, #case-corps .case-vide svg { width: 50%; }
+#case-moi .case-vide, #case-corps .case-vide { gap: 4px; padding: 8px 6px; }   /* place pour le bouton « ou… » dans la case */
 label.lien { display: flex; align-items: center; justify-content: center; margin-top: -6px; }
 
 /* Résultat : flèches et glissé d'un souvenir à l'autre */
@@ -450,12 +531,105 @@ label.lien { display: flex; align-items: center; justify-content: center; margin
 .geste-precision input { font: 600 22px var(--main); color: var(--encre); background: var(--papier); border: 1px solid var(--bord);
   padding: 8px 12px; border-radius: 4px; min-height: 48px; width: 100%; }
 .geste-precision .pastilles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* Médaillons façon jeu vidéo (30/10) : époques, lieux, danses ; médaille ronde cerclée d'or, la choisie brille */
+.geste-precision .medaillons { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 6px; padding: 6px 0 4px; }
+.geste-precision .medaillons.deux { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.medaillon { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 0; padding: 4px 2px; border: 0; border-radius: 12px; background: none; }
+.medaillon[aria-pressed="true"] { background: none; color: var(--encre); }
+.medaille { position: relative; display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; background: var(--teinte);
+  font-size: 40px; line-height: 1; transition: transform .15s;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .18), inset 0 0 0 5px rgba(255, 255, 255, .35), 0 0 0 4px #E9C46A, 0 0 0 6px #8A6A1E, 0 6px 10px rgba(80, 50, 20, .25); }
+.medaille { isolation: isolate; }
+.medaille::before { content: ""; position: absolute; z-index: -1; inset: 9px 14px auto; height: 30%; border-radius: 50%; background: rgba(255, 255, 255, .22); }
+.medaillon:active .medaille { transform: scale(.94); }
+.medaillon[aria-pressed="true"] .medaille { transform: scale(1.08);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .18), inset 0 0 0 5px rgba(255, 255, 255, .5), 0 0 0 4px #FFD23F, 0 0 0 7px var(--encre), 0 0 22px 6px rgba(255, 200, 40, .75); }
+.medaillon[aria-pressed="true"] .medaille::after { content: "★"; position: absolute; top: -9px; right: -7px; font-size: 26px; color: #FFD23F; -webkit-text-stroke: 2px var(--encre); }
+.medaille-nom { font: 700 14px/1.15 var(--texte); text-align: center; overflow-wrap: anywhere; }
+.medaillon[aria-pressed="true"] .medaille-nom { color: var(--corail-fonce); }
+@media (prefers-reduced-motion: reduce) { .medaille { transition: none; } }
 .avis-calin { margin: 10px 0 0; padding: 10px 12px; border: 2px solid var(--corail-fonce); border-radius: 12px; background: #FFF8EC; font: 600 15px/1.35 var(--texte); color: var(--encre); }
 .gestes-bonus {grid-column: 1 / -1; margin: 8px 0 -2px; font: 600 15px/1.2 var(--texte); color: var(--encre); opacity: .75; }
 .aide-auto { font: 500 16px/1.35 var(--texte); color: var(--encre); margin: 2px 0 8px; }
 .pastille-vedette { border-color: var(--corail-fonce); border-width: 2px; background: #FFF8EC; font-weight: 600; }
 .pastille-vedette[aria-pressed="true"] { background: var(--encre); }
 .bouton-idees { margin-top: 4px; }
+/* Bloc Automatique (29/10) : la carte et son choix forment UN bloc ; le choix en deux boutons segmentés dedans */
+.bloc-auto { grid-column: 1 / -1; display: flex; flex-direction: column; background: var(--papier); border: 1px solid var(--bord);
+  border-radius: 14px; overflow: hidden; }
+.bloc-auto.choisi { border: 2px solid var(--corail-fonce); background: #FFF8EC; box-shadow: 0 3px 0 rgba(201, 63, 41, .25); }
+.bloc-auto .carte-geste { border: 0; border-radius: 0; background: none; }
+.bloc-auto .carte-geste[aria-pressed="true"] { outline: none; }
+.segments { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 0 10px 10px; padding: 4px; border-radius: 14px; background: #F3E8D6; }
+.segment { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 9px; min-height: 64px; border: 0; border-radius: 11px;
+  background: none; color: var(--encre); font: inherit; text-align: center; cursor: pointer; transition: background .2s, box-shadow .2s; }
+.segment svg { width: 20px; height: 20px; color: var(--doux); }
+.segment strong { font: 600 15px/1.15 var(--texte); }
+.segment span { font-size: 12.5px; line-height: 1.2; color: var(--doux); }
+.segment[aria-pressed="true"] { background: var(--papier); box-shadow: 0 2px 8px rgba(43, 29, 26, .16), inset 0 0 0 2px var(--corail-fonce); }
+.segment[aria-pressed="true"] svg { color: var(--corail-fonce); }
+/* Texte libre, même habillage dans les deux portes : « À toi de raconter » / « Tu veux préciser ? » */
+.raconter { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px 14px; background: var(--papier);
+  border: 1.5px dashed var(--canard); border-radius: 14px; }
+.raconter-tete { display: flex; align-items: center; gap: 10px; }
+.raconter-tete svg { flex: none; width: 20px; height: 20px; padding: 8px; box-sizing: content-box; border-radius: 50%; color: var(--canard-texte); background: #E3F1F0; }
+.raconter-tete label { font: 600 24px/1.1 var(--main); color: var(--canard-texte); }
+.raconter-tete small { margin-left: auto; padding: 3px 9px; border-radius: 20px; background: #F3E8D6; font: 500 12.5px var(--texte); color: var(--doux); white-space: nowrap; }
+.raconter-aide { margin: 0; font: 400 14.5px/1.35 var(--texte); color: var(--doux); }
+/* Texte écrit : seul le texte part, les cartes s'estompent et ne répondent plus (un toucher fait clignoter la note) */
+.texte-seul > .carte-geste, .texte-seul > .bloc-auto, .texte-seul > .gestes-bonus, .texte-seul > .geste-precision {
+  opacity: .4; filter: grayscale(.6); transition: opacity .2s; }
+.scene-seul { margin: 0; font: 600 14.5px/1.3 var(--texte); color: var(--corail-fonce); }
+.scene-pause { margin: 0; font: 500 14.5px/1.3 var(--texte); color: var(--doux); }
+/* Texte en pause (une carte a été touchée) : grisé, gardé, repris d'un toucher */
+.raconter textarea.en-pause { color: #A79C90; background: #F2EDE6; border-style: dashed; text-decoration: line-through rgba(0, 0, 0, .25); }
+.champ-gomme { position: relative; display: flex; flex-direction: column; }
+.champ-gomme textarea { padding-right: 52px; }
+.gomme { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 10px;
+  background: none; color: var(--doux); cursor: pointer; }
+.gomme svg { width: 24px; height: 24px; }
+.gomme:active { background: #F3E8D6; color: var(--corail-fonce); }
+.gomme[hidden] { display: none; }
+.raconter textarea { font: 600 22px/1.15 var(--main); color: var(--encre); background: #FFFDF8; border: 1px solid var(--bord); padding: 10px 12px; border-radius: 10px;
+  resize: vertical; min-height: 64px; width: 100%; }
+.raconter .idees { margin-top: 2px; }
+/* Photos de face (29/10) : petite aide illustrée avant le choix de la photo souvenir, cachée une fois la photo choisie */
+.aide-visages { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 14px; background: var(--papier); border: 1px solid var(--bord); }
+.aide-visages p { margin: 0; font: 600 15px/1.3 var(--texte); color: var(--encre); }
+.picto-visage { position: relative; flex: none; width: 46px; height: 46px; }
+.picto-visage svg { width: 100%; height: 100%; display: block; border-radius: 10px; }
+.picto-visage::after { position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--papier);
+  display: grid; place-items: center; font: 700 12px/1 var(--texte); color: #fff; }
+.picto-visage.oui::after { content: "✓"; background: #2F9B5A; }
+.picto-visage.non::after { content: "✕"; background: var(--corail-fonce); }
+.picto-visage.non svg { opacity: .8; }
+.aide-visages:has(+ .case-boite .case.pleine), .aide-visages:has(+ .mention-accord + .case-boite .case.pleine) { display: none; }
+/* Mention d'accord (30/10) : photos de la famille avec leur accord, surtout les enfants ; discrète, toujours visible */
+.mention-accord { margin: 2px 4px 0; font: 500 13.5px/1.35 var(--texte); color: var(--doux); }
+/* Signalétique (30/10) : étapes numérotées à la place des phrases d'explication */
+.ecran { counter-reset: etape; }
+.etiquette-titre.etape { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.etiquette-titre.etape::before { counter-increment: etape; content: counter(etape); flex: none; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--canard); color: #fff; font: 600 17px/30px var(--texte); text-align: center; }
+/* Scanner une photo papier : vraie tuile avec son dessin, séparée du choix de photo par « ou » */
+.ou-sep { display: flex; align-items: center; gap: 12px; font: 600 22px/1 var(--main); color: var(--doux); }
+.ou-sep::before, .ou-sep::after { content: ""; flex: 1; height: 1.5px; background: var(--bord); }
+.case-boite:has(.case.pleine) ~ .ou-sep { display: none; }
+.bouton-scan { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 16px 12px 12px; border: 2px solid var(--encre); border-radius: 18px;
+  background: var(--papier); color: var(--encre); text-align: left; cursor: pointer; box-shadow: 0 4px 0 var(--encre); transition: transform .1s, box-shadow .1s; }
+.bouton-scan:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--encre); }
+.scan-picto { flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 14px; background: var(--soleil); color: var(--encre); }
+.scan-picto svg { width: 42px; height: 42px; }
+.scan-textes { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scan-textes strong { font: 600 18px/1.2 var(--texte); }
+.scan-textes small { font: 500 14.5px/1.3 var(--texte); color: var(--doux); }
+.duo-col:has(.puce-conseil) { position: relative; }
+.puce-conseil { position: absolute; top: 18px; right: -6px; z-index: 2; transform: rotate(5deg); font: 600 12.5px/1 var(--texte); color: #fff;
+  background: var(--canard); padding: 5px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(43, 29, 26, .18); pointer-events: none; }
+/* Mes souvenirs : film prêt pas encore regardé */
+.pol.mini.nouveau { box-shadow: 0 0 0 3px var(--corail-fonce); }
+.pol.mini.nouveau::before { content: ""; position: absolute; top: -6px; right: -6px; z-index: 2; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--corail-fonce); border: 2px solid var(--creme); }
 .idees { display: flex; flex-direction: column; gap: 10px; }
 .idees-liste { display: flex; flex-direction: column; gap: 10px; }
 .carte-idee { display: grid; grid-template-columns: 34px 1fr; column-gap: 8px; text-align: left; background: var(--papier); border: 1px solid var(--bord); padding: 10px; color: var(--encre); font: inherit; cursor: pointer; min-height: 44px; }
@@ -464,5 +638,45 @@ label.lien { display: flex; align-items: center; justify-content: center; margin
 .carte-idee strong { font: 500 17px/1.15 var(--titre); }
 .carte-idee span:not(.idee-emoji) { font-size: 13px; color: var(--doux); line-height: 1.3; margin-top: 2px; }
 .carte-idee[aria-pressed="true"] { outline: 3px solid var(--corail-fonce); outline-offset: 2px; background: #FFF8EC; transform: rotate(0); }
-.champ-mot { margin-top: 2px; }
 #partager-film:disabled { opacity: .6; }
+
+/* 30/10 : recadrage plein écran, bandeau d'alerte, bulle sous les durées, anneau qui pulse */
+.recadrage { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; background: #1c1411; color: var(--creme); }
+.rec-aide { margin: 0; padding: 14px 18px 4px; text-align: center; font: 600 22px/1.15 var(--main); }
+.rec-scene { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.rec-image { position: relative; line-height: 0; cursor: crosshair; }
+.rec-image canvas { display: block; pointer-events: none; }
+.rec-cadre { position: absolute; pointer-events: none; border: 2px solid #fff; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .6); cursor: move; }
+.rec-cadre::before, .rec-cadre::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.rec-cadre::before { background: linear-gradient(to right, transparent 33.2%, rgba(255, 255, 255, .35) 33.3% 33.6%, transparent 33.7% 66.2%, rgba(255, 255, 255, .35) 66.3% 66.6%, transparent 66.7%); }
+.rec-cadre::after { background: linear-gradient(to bottom, transparent 33.2%, rgba(255, 255, 255, .35) 33.3% 33.6%, transparent 33.7% 66.2%, rgba(255, 255, 255, .35) 66.3% 66.6%, transparent 66.7%); }
+.rec-cadre i { position: absolute; z-index: 1; width: 28px; height: 28px; background: var(--soleil); border: 3px solid var(--encre); border-radius: 50%; }
+.rec-cadre i:nth-child(1) { left: -16px; top: -16px; }
+.rec-cadre i:nth-child(2) { right: -16px; top: -16px; }
+.rec-cadre i:nth-child(3) { left: -16px; bottom: -16px; }
+.rec-cadre i:nth-child(4) { right: -16px; bottom: -16px; }
+.rec-bas { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 18px calc(12px + env(safe-area-inset-bottom)); }
+.rec-ok { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 420px; min-height: 64px; margin-top: 0; font-size: 22px; font-weight: 600; background: var(--corail); box-shadow: 0 4px 0 var(--corail-fonce); }
+.rec-ok svg { width: 28px; height: 28px; flex: none; }
+.recadrage .lien { color: var(--creme); opacity: .8; font-size: 19px; }
+
+.case-recadrer { position: absolute; top: -12px; left: -8px; z-index: 3; display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px 0 10px;
+  border-radius: 30px; border: 2px solid var(--creme); background: var(--canard-texte); color: #fff; font: 600 15px var(--texte); cursor: pointer; }
+.case-recadrer svg { width: 18px; height: 18px; flex: none; }
+.case-recadrer[hidden] { display: none; }
+
+.bandeau-alerte { position: fixed; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 12px;
+  width: calc(min(480px, 100vw) - 28px); padding: 14px 16px; border: 0; border-radius: 18px; text-align: left; cursor: pointer;
+  background: linear-gradient(135deg, #F0654C, #D9402B); color: #fff; font: 700 18px/1.25 var(--texte); box-shadow: 0 0 0 4px rgba(232, 87, 63, .28), 0 8px 22px rgba(43, 29, 26, .35); }
+.bandeau-alerte svg { width: 32px; height: 32px; flex: none; }
+.bandeau-alerte.actif { animation: bandeau-pulse .65s ease-in-out 3; }
+@keyframes bandeau-pulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.045); box-shadow: 0 0 0 10px rgba(232, 87, 63, .45), 0 8px 22px rgba(43, 29, 26, .35); } }
+
+.bulle-duree { position: relative; align-self: flex-start; max-width: 100%; margin-top: 8px; padding: 10px 16px; border: 0; border-radius: 16px; text-align: left; cursor: pointer;
+  background: var(--encre); color: var(--creme); font: 500 16px/1.3 var(--texte); box-shadow: 0 6px 16px rgba(43, 29, 26, .25); animation: bulle-entree .25s ease-out; }
+.bulle-duree::before { content: ""; position: absolute; left: 28px; top: -7px; width: 14px; height: 14px; background: var(--encre); transform: rotate(45deg); border-radius: 3px 0 0 0; }
+@keyframes bulle-entree { from { opacity: 0; transform: translateY(-6px); } }
+
+.pulse-cible { outline: 4px solid var(--soleil); outline-offset: 3px; animation: anneau 1s ease-out infinite; }
+@keyframes anneau { 0% { box-shadow: 0 0 0 0 rgba(255, 201, 74, .85); } 100% { box-shadow: 0 0 0 18px rgba(255, 201, 74, 0); } }
+.medaille svg { display: block; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .2)); }

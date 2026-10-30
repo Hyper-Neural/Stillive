@@ -159,7 +159,7 @@ def _empreinte(*chemins):
     return h.hexdigest()[:16]
 
 
-def proposer(photo, sortie, comfy_url, langue="fr", secondes=7, deja=()):
+def proposer(photo, sortie, comfy_url, langue="en", secondes=7, deja=()):
     """Étape 1 « L'IA propose » : envoie la photo, demande 3 idées d'action (drôle, émouvante,
     magique), les enregistre dans `propositions.json` du dossier et les renvoie. Ne touche pas
     aux fichiers de reprise du film. Une réponse illisible lève ValueError."""
@@ -205,7 +205,7 @@ def idee_surprise(idees):
 
 def fabriquer_clip(photo, sortie, comfy_url, secondes=8, avec_retouche=True, couleur=None,
                    souhait=None, recette="revit", mouvement="auto", look="aucun",
-                   moi_visage=None, moi_corps=None, signature=None, langue="fr", rapport=lambda nom, donnees: None,
+                   moi_visage=None, moi_corps=None, signature=None, langue="en", rapport=lambda nom, donnees: None,
                    geste=None, mot=None, geste_valeur=None, forcer_enfant=False):
     """geste : code de analyse.GESTES (ignoré en recette « boucle »), ajouté avant le texte libre ;
     forcer_enfant : pour « calin_enfant », saute la vérification « jeune enfant sur la photo »
