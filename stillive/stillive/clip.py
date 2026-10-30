@@ -148,6 +148,23 @@ def _mode_plan(recette):
     return recette if recette in ("temps", "boucle") else ""
 
 
+def _planche(visage, corps, sortie):
+    """Selfie et photo en pied côte à côte, même hauteur, dans une seule image (fiche de personnage)."""
+    h = 1024
+    ims = []
+    for chemin in (visage, corps):
+        with Image.open(chemin) as im:
+            im = im.convert("RGB")
+            ims.append(im.resize((max(1, round(im.width * h / im.height)), h), Image.LANCZOS))
+    marge = 24
+    planche = Image.new("RGB", (ims[0].width + ims[1].width + marge, h), (255, 255, 255))
+    planche.paste(ims[0], (0, 0))
+    planche.paste(ims[1], (ims[0].width + marge, 0))
+    chemin = os.path.join(sortie, "moi_planche.jpg")
+    planche.save(chemin, quality=92)
+    return chemin
+
+
 def _empreinte(*chemins):
     import hashlib
     h = hashlib.sha1()
@@ -376,8 +393,9 @@ def fabriquer_clip(photo, sortie, comfy_url, secondes=8, avec_retouche=True, cou
         target, key = os.path.join(sortie, "plan00.mp4"), "plan00"
         if not os.path.isfile(target):
             if moi_visage:
-                faire = lambda: h3.graphe_verifie(h3.build_ref(name, comfy.upload_image(moi_visage),
-                                             comfy.upload_image(moi_corps) if moi_corps else None,
+                # Visage + photo en pied : UNE seule image de référence (planche), sinon H3 y voit deux personnes (30/10)
+                ref_moi = _planche(moi_visage, moi_corps, sortie) if moi_corps else moi_visage
+                faire = lambda: h3.graphe_verifie(h3.build_ref(name, comfy.upload_image(ref_moi), None,
                                              r["h3_prompt"], w, hgt, secondes, caps=_capacites(comfy),
                                              seed=random.randint(0, 2**32 - 1), prefix=f"stillive/{key}"), alertes)
             else:

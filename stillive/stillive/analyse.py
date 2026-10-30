@@ -1098,8 +1098,8 @@ def rythme(secondes):
 
 def h3_prompt_entrer(a, moi, index=0, secondes=7, music=True, mouvement="auto", avec_corps=True, sol=False, fond=None):
     """Consigne H3 Ref2VA « J'entre dans la photo », six sections. Références : Picture 1 = la
-    photo (première image du plan), Picture 2 = la photo de l'utilisateur (visage), Picture 3 =
-    photo en pied (même personne), seulement si avec_corps. `moi` : description de la personne ;
+    photo (première image du plan), Picture 2 = la photo de l'utilisateur, ou si avec_corps la
+    planche visage + photo en pied (même personne, clip._planche). `moi` : description de la personne ;
     a["entrance"] : comment elle entre. Convient à toute image, ancienne ou récente."""
     bw = bool(a.get("black_and_white"))
     decade = a.get("decade", "")
@@ -1118,9 +1118,11 @@ def h3_prompt_entrer(a, moi, index=0, secondes=7, music=True, mouvement="auto", 
         print_ = "a photograph"
         tons = "the colors, grain and light"
     if avec_corps:
-        origine = ("the person whose face comes from <Picture 2> and whose body, build and outfit come from <Picture 3>")
-        memes = (" <Picture 2> and <Picture 3> show ONE and the same person: <Picture 2> is a close-up portrait of their face, "
-                 "<Picture 3> shows that same person full length, head to toe. Only one such person appears in the video, never two.")
+        # Une seule image de référence (planche, voir clip._planche) : avec deux images, H3 dédoublait la personne (30/10)
+        origine = "the person shown in <Picture 2>, whose face, hair, build and outfit come from that picture"
+        memes = (" <Picture 2> is a character reference sheet of ONE single person seen twice: on the left a close-up "
+                 "of their face, on the right the very same person full length, head to toe. It is one person, not two: "
+                 "only one such person appears in the video, never two.")
     else:
         origine = "the person shown in <Picture 2>, whose face, hair, build and outfit come from that picture"
         memes = ""
