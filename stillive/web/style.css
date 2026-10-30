@@ -584,10 +584,10 @@ label.lien { display: flex; align-items: center; justify-content: center; margin
 /* Texte en pause (une carte a été touchée) : grisé, gardé, repris d'un toucher */
 .raconter textarea.en-pause { color: #A79C90; background: #F2EDE6; border-style: dashed; text-decoration: line-through rgba(0, 0, 0, .25); }
 .champ-gomme { position: relative; display: flex; flex-direction: column; }
-.champ-gomme textarea { padding-right: 52px; }
-.gomme { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 10px;
-  background: none; color: var(--doux); cursor: pointer; }
-.gomme svg { width: 24px; height: 24px; }
+/* 30/10 : gomme sortie du champ (sur téléphone, toucher un mot caché dessous effaçait tout) ; à côté du titre */
+.gomme { flex: none; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%;
+  background: #F3E8D6; color: var(--corail-fonce); cursor: pointer; }
+.raconter-tete .gomme svg { width: 22px; height: 22px; padding: 0; background: none; color: inherit; }
 .gomme:active { background: #F3E8D6; color: var(--corail-fonce); }
 .gomme[hidden] { display: none; }
 .raconter textarea { font: 600 22px/1.15 var(--main); color: var(--encre); background: #FFFDF8; border: 1px solid var(--bord); padding: 10px 12px; border-radius: 10px;
